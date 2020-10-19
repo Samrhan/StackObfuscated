@@ -10,7 +10,7 @@ const logger = require('morgan')
 router.use(logger('dev'))
 router.use(express.json())
 router.use(express.urlencoded({extended: false}))
-router.use(session({secret: 'grehjznejzkhgjrez', saveUninitialized: false, resave: false}))
+router.use(session({secret: 'cI8zS4nC8gZ1hN7j', saveUninitialized: false, resave: false}))
 
 /*const client = new Client({
     user: 'postgres',
@@ -39,6 +39,10 @@ router.use((req, res, next) => {
 
 router.get("/", (req, res) => {
     res.send("Hello World ! ")
+})
+
+router.get("/test", (req, res) => {
+    res.send("heyotest")
 })
 
 
