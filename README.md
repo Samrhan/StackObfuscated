@@ -1,8 +1,8 @@
 # StackObfuscated
 
 **Parodie de StackOverflow**
-Projet Web - 2020
-Samuel BADER - Adrien PLOT
+Projet Web - 2020 <br>
+Samuel BADER - Adrien PLOT <br>
 © StackObfuscated.com - Tout droits réservés
 
 ## Project setup
