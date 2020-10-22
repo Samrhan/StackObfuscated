@@ -1,4 +1,9 @@
-# stackobfuscated
+# StackObfuscated
+
+**Parodie de StackOverflow**
+Projet Web - 2020
+Samuel BADER - Adrien PLOT
+© StackObfuscated.com - Tout droits réservés
 
 ## Project setup
 ```
