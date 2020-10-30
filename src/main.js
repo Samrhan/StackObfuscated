@@ -3,12 +3,19 @@ import VueRouter from 'vue-router'
 import App from './App.vue'
 
 import Home from './components/Home'
+import Register from './components/Register'
+import Login from './components/Login'
+
 
 Vue.use(VueRouter)
 Vue.config.productionTip = false
 
 const routes = [
-  { path: '/home', component: Home }
+  {path: '/', redirect: '/home' },
+  { path: '/home', component: Home },
+  {path : '/register', component: Register},
+  {path : '/login', component: Login}
+
 ]
 
 const router = new VueRouter({
