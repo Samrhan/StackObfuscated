@@ -142,7 +142,7 @@ header.masthead .bg-circle-4 {
 
 }
 
-#register:before {
+#register:before { /*Pour la bordure derière le form*/
   content: '';
   position: absolute;
   top: -1vh;
@@ -151,7 +151,7 @@ header.masthead .bg-circle-4 {
   left: calc(35vw - 15px);
   z-index: -1;
   padding: 15px;
-  border-radius: inherit; /* !importanté */
+  border-radius: inherit;
   background: linear-gradient(0deg, #ee0979 0%, #ff6a00 100%);
 }
 

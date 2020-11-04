@@ -13,27 +13,43 @@
         <ul class="navbar-nav mr-auto">
           <li class="nav-item">
             <a class="nav-link">
-              <router-link class="router-link" to="home" data-toggle="collapse" data-target="#navbar">Home</router-link>
+              <router-link class="router-link" :to="{name:'home'}">Home
+              </router-link>
             </a>
           </li>
           <li class="nav-item">
             <a class="nav-link">
-              <router-link class="router-link" to="home" data-toggle="collapse" data-target="#navbar">Forum</router-link>
+              <router-link class="router-link" :to="{name:'home'}">Forum
+              </router-link>
             </a>
           </li>
         </ul>
         <form class="form-inline my-2 my-lg-0" v-on:submit.prevent="test">
           <input class="form-control mr-sm-2 col-lg-100" type="search" placeholder="Search" aria-label="Search">
         </form>
-        <ul class="navbar-nav my-2 my-lg-0">
+        <ul class="navbar-nav my-2 my-lg-0" v-if="!$store.state.user">
           <li class="nav-item">
             <a class="nav-link">
-              <router-link class="router-link" to="login" data-toggle="collapse" data-target="#navbar">Login</router-link>
+              <router-link class="router-link" :to="{name:'login'}">Login</router-link>
             </a>
           </li>
           <li class="nav-item">
             <a class="nav-link">
-              <router-link class="router-link" to="register" data-toggle="collapse" data-target="#navbar">Register</router-link>
+              <router-link class="router-link" :to="{name:'register'}">Register</router-link>
+            </a>
+          </li>
+        </ul>
+        <ul class="navbar-nav my-2 my-lg-0" v-else>
+          <li class="nav-item">
+            <a class="nav-link">
+              <router-link class="router-link" :to="{name:'profile', params:{username:$store.state.user.username}}"
+                           active-class="">Profil
+              </router-link>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link">
+              <a class="router-link" v-on:click="$store.dispatch('logout')">Se déconnecter</a>
             </a>
           </li>
         </ul>
@@ -51,10 +67,9 @@
 
 <script>
 module.exports = {
-  methods: {
-    test: function () {
-      console.log("test");
-    }
+  methods: {},
+  async mounted() {
+    await this.$store.dispatch('me')
   }
 }
 </script>

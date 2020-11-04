@@ -23,7 +23,7 @@ class User {
     constructor() {
         this.createdAt = new Date()
         this.updatedAt = new Date()
-        this.data // undefined si l'utilisateur n'est pas connecté
+        this.data = undefined// undefined si l'utilisateur n'est pas connecté
     }
 }
 
@@ -35,11 +35,18 @@ router.use((req, res, next) => {
     next()
 })
 
+router.get('/me', async (req, res) => {
+    if (req.session.user.data) {
+        res.json({user: req.session.user.data})
+    } else {
+        res.json({user: undefined})
+    }
+})
+
 router.post('/register', async (req, res) => {
     const mail = req.body.email
     const passwd = req.body.passwd
     const username = req.body.username
-    console.log(req.body)
     // vérification de la validité des données d'entrée
     if (typeof mail !== 'string' || mail === '' ||
         typeof passwd !== 'string' || passwd === '' ||
@@ -109,10 +116,44 @@ router.post("/login", async (req, res) => {
         }
         let response = query.rows[0]
         delete response.password // On ne renvoie pas le hash au client
-        res.json({user:response})
+        req.session.user.data = response
+        res.json({user: response})
     } catch (err) {
         res.status(401).json({message: err, code: 0})
     }
+})
+
+router.post('/editprofile', async (req, res) => {
+    if (req.session.user.data) {
+        const bio = req.body.bio.substr(0,400) // On crop si l'utilisateur n'a pas respecté le form
+        const profile_pic = req.body.profile_pic
+        const bg_pic = req.body.bg_pic
+        // vérification de la validité des données d'entré
+        if (typeof bio !== 'string' ||
+            typeof profile_pic !== 'string' ||
+            typeof bg_pic !== 'string') {
+            return res.status(400).json({message: 'bad request', code: 3})
+        }
+        await client.query('UPDATE users SET (bio, profile_pic, bg_pic) = ($1, $2, $3) WHERE id = $4', [bio, profile_pic, bg_pic, req.session.user.data.id])
+        req.session.user.data.bio = bio
+        req.session.user.data.profile_pic = profile_pic
+        req.session.user.data.bg_pic = bg_pic
+        return res.json({user: req.session.user.data})
+    }
+});
+
+router.get('/user/:username', async (req, res) => {
+    const username = req.params.username
+    if (typeof username !== 'string' || username === '') {
+        return res.status(401).json({response: 'forbidden'})
+    }
+    const query = await client.query("SELECT note,bio,profile_pic,bg_pic FROM users WHERE username = $1", [username])
+    res.json({user: query.rows})
+})
+
+router.post('/logout', (req, res) => {
+    req.session.destroy()
+    res.json({status: 'done'})
 })
 
 
