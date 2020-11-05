@@ -176,5 +176,6 @@ body {
 
 footer {
   background-color: black !important;
+  width: 100%;
 }
 </style>

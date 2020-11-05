@@ -10,6 +10,7 @@
   "dependencies": {
     "core-js": "^3.6.5",
     "express": "^4.17.1",
+    "moment-timezone": "^0.5.31",
     "morgan": "^1.10.0",
     "nodemon": "^2.0.5",
     "pg": "^8.4.1",

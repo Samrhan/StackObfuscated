@@ -57,70 +57,84 @@
                 </div>
               </div>
             </div>
-            <div class="profile-content">
-              <div class="tab-content p-0">
-                <div class="tab-pane fade active show" id="profile-post">
-                  <ul class="timeline">
-                    <li>
-                      <div class="timeline-time">
-                        <span class="date">today</span>
-                        <span class="time">04:20</span>
-                      </div>
-                      <div class="timeline-icon">
-                        <a>&nbsp;</a>
-                      </div>
-                      <div class="timeline-body">
-                        <div class="timeline-header">
+            <div style="margin-top: -30px; margin-bottom: 30px" v-if="posts.length >0">
+              <div class="profile-content" v-for="(post, i) in posts" :key="i"
+                   style="margin-bottom: -40px; padding-bottom: 0">
+                <div class="tab-content p-0">
+                  <div class="tab-pane fade active show" id="profile-post">
+                    <ul class="timeline">
+                      <li>
+                        <div class="timeline-time">
+                          <span class="date">{{ post.created_at | moment("DD/MM/YYYY") }}</span>
+                          <span class="time">{{ post.created_at | moment("HH:mm") }}</span>
+                        </div>
+                        <div class="timeline-icon">
+                          <a>&nbsp;</a>
+                        </div>
+                        <div class="timeline-body">
+                          <div class="timeline-header">
                           <span class="userimage">
                             <img class="rounded-circle" v-if="user.profile_pic" :src="user.profile_pic" alt="">
                             <img class="rounded-circle"
                                  src="https://cdn.vox-cdn.com/thumbor/ICjwWQhDmr48CIKabxxQilwTVfg=/0x0:786x393/920x613/filters:focal(331x135:455x259):format(webp)/cdn.vox-cdn.com/uploads/chorus_image/image/65101167/obi-wan.0.0.jpg"
                                  alt="Photo par défaut" v-else>
                           </span>
-                          <span class="username"><a>{{ $route.params.username }}</a> <small></small></span>
-                        </div>
-                        <div class="timeline-content">
-                          <p>
-                            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nunc faucibus turpis quis tincidunt
-                            luctus.
-                            Nam sagittis dui in nunc consequat, in imperdiet nunc sagittis.
-                          </p>
-                        </div>
-                        <div class="timeline-likes">
-                          <div class="stats-right">
-                            <span class="stats-text">21 Réponses</span>
+                            <span class="username"><a>{{ $route.params.username }}</a> <small></small></span>
                           </div>
-                          <div class="stats">
+                          <div class="timeline-title">
+                            <p>
+                              {{ post.title }}
+                            </p>
+                          </div>
+                          <div class="timeline-content">
+                            <p>
+                              {{ post.content }}
+                            </p>
+                          </div>
+                          <div class='tag-input form-group post-tags'>
+                            <div v-for='tag in post.tags' :key='tag' class='tag-input__tag'>
+                              {{ tag }}
+                            </div>
+                          </div>
+                          <div class="timeline-likes">
+                            <div class="stats-right">
+                              <span class="stats-text">21 Réponses</span>
+                            </div>
+                            <div class="stats">
                             <span class="fa-stack fa-fw stats-icon">
                               <i class="fa fa-circle fa-stack-2x text-primary"></i>
                               <i class="fa fa-thumbs-up fa-stack-1x fa-inverse"></i>
                             </span>
-                            <span class="stats-total">4.3k</span>
+                              <span class="stats-total">4.3k</span>
+                            </div>
                           </div>
-                        </div>
-                        <div class="timeline-footer" v-if="$store.state.user">
-                          <a class="m-r-15 text-inverse-lighter"><i
-                              class="fa fa-thumbs-up fa-fw fa-lg m-r-3"></i> Like</a>
-                        </div>
-                        <div class="timeline-comment-box" v-if="$store.state.user">
-                          <div class="user"><img :src="$store.state.user.profile_pic"></div>
-                          <div class="input">
-                            <form action="">
-                              <div class="input-group">
-                                <input type="text" class="form-control rounded-corner" placeholder="Useless...">
-                                <span class="input-group-btn p-l-10">
+                          <div class="timeline-footer" v-if="$store.state.user">
+                            <a class="m-r-15 text-inverse-lighter"><i
+                                class="fa fa-thumbs-up fa-fw fa-lg m-r-3"></i> Like</a>
+                          </div>
+                          <div class="timeline-comment-box" v-if="$store.state.user">
+                            <div class="user"><img :src="$store.state.user.profile_pic"></div>
+                            <div class="input">
+                              <form action="">
+                                <div class="input-group">
+                                  <input type="text" class="form-control rounded-corner" placeholder="Useless...">
+                                  <span class="input-group-btn p-l-10">
                                           <button class="btn btn-primary f-s-12 rounded-corner"
                                                   type="button">Répondre</button>
                                           </span>
-                              </div>
-                            </form>
+                                </div>
+                              </form>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </li>
-                  </ul>
+                      </li>
+                    </ul>
+                  </div>
                 </div>
               </div>
+            </div>
+            <div v-else>
+              <h3  class="masthead-heading mb-0" style="text-align: center">L'utilisateur n'a créé aucun post :(</h3>
             </div>
           </div>
         </div>
@@ -147,7 +161,7 @@
                 <span class="username"><a>{{ user.username }}</a> <small></small></span>
               </div>
               <div class="timeline-content">
-                <form>
+                <form v-on:submit.prevent="submitPost">
                   <div class="form-group">
                     <label for="input-title">Titre</label>
                     <input type="text" class="form-control" id="input-title" placeholder="Je suis nul...."
@@ -162,8 +176,10 @@
                       <span @click='removeTag(new_post.tags.indexOf(tag))'>x</span>
                       {{ tag }}
                     </div>
-                    <input type='text' :placeholder="new_post.tags.length < 3 ? 'Tags...' : ''" class='tag-input__text' @keydown.enter='addTag'
-                           @keydown.188='addTag' @keydown.space="addTag" @keydown.delete='removeLastTag' v-bind:disabled="new_post.tags.length >= 3"/>
+                    <input type='text' :placeholder="new_post.tags.length < 3 ? 'Tags...' : ''" class='tag-input__text'
+                           @keydown.enter='addTag'
+                           @keydown.188='addTag' @keydown.space="addTag" @keydown.delete='removeLastTag'
+                           v-bind:disabled="new_post.tags.length >= 3"/>
                   </div>
                 </form>
               </div>
@@ -171,7 +187,7 @@
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" data-dismiss="modal">Annuler</button>
-            <button type="button" class="btn btn-primary">Poster</button>
+            <button type="button" class="btn btn-primary" v-on:click="submitPost">Poster</button>
           </div>
         </div>
       </div>
@@ -192,11 +208,12 @@ export default {
         profile_pic: '',
         bg_pic: '',
       },
-      new_post:{
-        title:'',
-        content:'',
+      new_post: {
+        title: '',
+        content: '',
         tags: []
       },
+      posts: []
     }
   },
   async mounted() {
@@ -217,6 +234,9 @@ export default {
     this.profile.bg_pic = this.user.bg_pic
     this.profile.profile_pic = this.user.profile_pic
 
+    await this.$store.dispatch('fetch_post', this.user.id)
+    this.posts = this.$store.state.post_list
+
   },
   methods: {
     submit_edit: async function () {
@@ -229,19 +249,23 @@ export default {
       event.preventDefault()
       let val = event.target.value.trim()
       if (val.length > 0) {
-        val = val.substr(0,10);
+        val = val.substr(0, 10);
         if (this.new_post.tags.indexOf(val) === -1 && this.new_post.tags.length < 3)
           this.new_post.tags.push(val)
         event.target.value = ''
       }
     },
-    removeTag (index) {
+    removeTag(index) {
       this.new_post.tags.splice(index, 1)
     },
     removeLastTag(event) {
       if (event.target.value.length === 0) {
         this.removeTag(this.new_post.tags.length - 1)
       }
+    },
+    async submitPost() {
+      await this.$store.dispatch('submit_post', this.new_post)
+      console.log(this.$store.state.post_list)
     }
   }
 }
@@ -250,6 +274,7 @@ export default {
 <style scoped>
 #profile {
   background: linear-gradient(0deg, #ff6a00 0%, #ee0979 100%) no-repeat scroll center center;
+  min-height: 100vh;
 }
 
 .profile-header {
@@ -331,12 +356,6 @@ export default {
   white-space: nowrap;
   border-radius: 0
 }
-
-.text-ellipsis,
-.text-nowrap {
-  white-space: nowrap !important
-}
-
 .profile-header .profile-header-tab > li {
   display: inline-block;
   margin: 0
@@ -434,23 +453,6 @@ export default {
   height: 10px
 }
 
-.profile-section + .profile-section {
-  margin-top: 20px;
-  padding-top: 20px;
-  border-top: 1px solid #b9c3ca
-}
-
-.profile-section:after,
-.profile-section:before {
-  content: '';
-  display: table;
-  clear: both
-}
-
-.profile-section .title {
-  font-size: 20px;
-  margin: 0 0 15px
-}
 
 .profile-section .title small {
   font-weight: 400
@@ -460,125 +462,7 @@ export default {
   padding: 20px;
   background-color: rgba(0, 0, 0, 0.5);
   box-shadow: 0 0 40px 50px rgba(0, 0, 0, 0.5);
-
 }
-
-body.flat-black {
-  background: #E7E7E7
-}
-
-.flat-black .navbar.navbar-inverse {
-  background: #212121
-}
-
-.flat-black .navbar.navbar-inverse .navbar-form .form-control {
-  background: #4a4a4a;
-  border-color: #4a4a4a
-}
-
-.flat-black .sidebar,
-.flat-black .sidebar-bg {
-  background: #3A3A3A
-}
-
-.flat-black .page-with-light-sidebar .sidebar,
-.flat-black .page-with-light-sidebar .sidebar-bg {
-  background: #fff
-}
-
-.flat-black .sidebar .nav > li > a {
-  color: #b2b2b2
-}
-
-.flat-black .sidebar.sidebar-grid .nav > li > a {
-  border-bottom: 1px solid #474747;
-  border-top: 1px solid #474747
-}
-
-.flat-black .sidebar .active .sub-menu > li.active > a,
-.flat-black .sidebar .nav > li.active > a,
-.flat-black .sidebar .nav > li > a:focus,
-.flat-black .sidebar .nav > li > a:hover,
-.flat-black .sidebar .sub-menu > li > a:focus,
-.flat-black .sidebar .sub-menu > li > a:hover,
-.sidebar .nav > li.nav-profile > a {
-  color: #fff
-}
-
-.flat-black .sidebar .sub-menu > li > a,
-.flat-black .sidebar .sub-menu > li > a:before {
-  color: #999
-}
-
-.flat-black .page-with-light-sidebar .sidebar .active .sub-menu > li.active > a,
-.flat-black .page-with-light-sidebar .sidebar .active .sub-menu > li.active > a:focus,
-.flat-black .page-with-light-sidebar .sidebar .active .sub-menu > li.active > a:hover,
-.flat-black .page-with-light-sidebar .sidebar .nav > li.active > a,
-.flat-black .page-with-light-sidebar .sidebar .nav > li.active > a:focus,
-.flat-black .page-with-light-sidebar .sidebar .nav > li.active > a:hover {
-  color: #000
-}
-
-.flat-black .page-sidebar-minified .sidebar .nav > li.has-sub:focus > a,
-.flat-black .page-sidebar-minified .sidebar .nav > li.has-sub:hover > a {
-  background: #323232
-}
-
-.flat-black .page-sidebar-minified .sidebar .nav li.has-sub > .sub-menu,
-.flat-black .sidebar .nav > li.active > a,
-.flat-black .sidebar .nav > li.active > a:focus,
-.flat-black .sidebar .nav > li.active > a:hover,
-.flat-black .sidebar .nav > li.nav-profile,
-.flat-black .sidebar .sub-menu > li.has-sub > a:before,
-.flat-black .sidebar .sub-menu > li:before,
-.flat-black .sidebar .sub-menu > li > a:after {
-  background: #2A2A2A
-}
-
-.flat-black .page-sidebar-minified .sidebar .sub-menu > li:before,
-.flat-black .page-sidebar-minified .sidebar .sub-menu > li > a:after {
-  background: #3e3e3e
-}
-
-.flat-black .sidebar .nav > li.nav-profile .cover.with-shadow:before {
-  background: rgba(42, 42, 42, .75)
-}
-
-.bg-white {
-  background-color: #fff !important;
-}
-
-.p-10 {
-  padding: 10px !important;
-}
-
-.media.media-xs .media-object {
-  width: 32px;
-}
-
-.m-b-2 {
-  margin-bottom: 2px !important;
-}
-
-.media > .media-left, .media > .pull-left {
-  padding-right: 15px;
-}
-
-.media-body, .media-left, .media-right {
-  display: table-cell;
-  vertical-align: top;
-}
-
-select.form-control:not([size]):not([multiple]) {
-  height: 34px;
-}
-
-.form-control.input-inline {
-  display: inline;
-  width: auto;
-  padding: 0 7px;
-}
-
 
 .timeline {
   list-style-type: none;
@@ -732,7 +616,9 @@ select.form-control:not([size]):not([multiple]) {
 }
 
 .timeline-title {
-  margin-top: 0
+  margin-top: 0;
+  font-size: 30px;
+  border-bottom: 1px solid #e2e7eb;
 }
 
 .timeline-footer {
@@ -817,7 +703,7 @@ select.form-control:not([size]):not([multiple]) {
   color: #ff5b57 !important;
 }
 
-#input-title{
+#input-title {
   border-radius: 20px;
 }
 
@@ -853,5 +739,12 @@ select.form-control:not([size]):not([multiple]) {
   line-height: 50px;
   background: none;
   width: 50%;
+}
+
+.post-tags {
+  border: 0;
+  padding: 0;
+  border-top: 1px solid #e2e7eb;
+  border-radius: 0
 }
 </style>

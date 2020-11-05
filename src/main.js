@@ -19,8 +19,8 @@ const routes = [
     {path: '/', redirect: '/home'},
     {path: '/home', component: Home, name: 'home'},
     {path: '/register', component: Register, name: 'register'},
-    {path: '/login', component: Login, name:'login'},
-    {path: '/profile/:username', component: Profile, name:'profile'}
+    {path: '/login', component: Login, name: 'login'},
+    {path: '/profile/:username', component: Profile, name: 'profile'}
 
 ]
 
@@ -34,7 +34,8 @@ const router = new VueRouter({
 const state = {
     status: 0,
     user: undefined,
-    tmp_user: undefined
+    tmp_user: undefined,
+    post_list: []
 }
 
 //to handle state
@@ -90,6 +91,19 @@ const actions = {
                 user.username = user
                 commit('SET_TMP_USER', user)
             })
+    },
+    fetch_post: async ({commit}, user) => {
+        await axios.get('/api/post/'+user)
+            .then(response => {
+                commit('SET_POST_LIST', response.data.list)
+            })
+    },
+    submit_post: async ({commit}, post) => {
+        await axios.post('/api/post', post)
+            .then(response => {
+                commit('ADD_POST', response.data.post)
+            })
+
     }
 }
 
@@ -103,7 +117,14 @@ const mutations = {
     },
     SET_TMP_USER(state, user) {
         state.tmp_user = user
+    },
+    ADD_POST(state, post) {
+        state.post_list.push(post)
+    },
+    SET_POST_LIST(state, list) {
+        state.post_list = list
     }
+
 }
 
 const store = new Vuex.Store({

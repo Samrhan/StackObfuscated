@@ -125,7 +125,7 @@ router.post("/login", async (req, res) => {
 
 router.post('/editprofile', async (req, res) => {
     if (req.session.user.data) {
-        const bio = req.body.bio.substr(0,400) // On crop si l'utilisateur n'a pas respecté le form
+        const bio = req.body.bio.substr(0, 400) // On crop si l'utilisateur n'a pas respecté le form
         const profile_pic = req.body.profile_pic
         const bg_pic = req.body.bg_pic
         // vérification de la validité des données d'entré
@@ -139,7 +139,7 @@ router.post('/editprofile', async (req, res) => {
         req.session.user.data.profile_pic = profile_pic
         req.session.user.data.bg_pic = bg_pic
         return res.json({user: req.session.user.data})
-    }
+    } else return res.status(403)
 });
 
 router.get('/user/:username', async (req, res) => {
@@ -147,13 +147,81 @@ router.get('/user/:username', async (req, res) => {
     if (typeof username !== 'string' || username === '') {
         return res.status(401).json({response: 'forbidden'})
     }
-    const query = await client.query("SELECT note,bio,profile_pic,bg_pic FROM users WHERE username = $1", [username])
+    const query = await client.query("SELECT note,bio,profile_pic,bg_pic,id FROM users WHERE username = $1", [username])
     res.json({user: query.rows})
 })
 
 router.post('/logout', (req, res) => {
     req.session.destroy()
     res.json({status: 'done'})
+})
+
+router.get('/post/:userid', async (req, res) => {
+    let userid = req.params.userid
+    userid = parseInt(userid)
+    if (isNaN(userid)) {
+        return res.status(400).json({message: 'bad request'})
+    }
+    // On récupère les post
+    const query = await client.query('SELECT * FROM posts WHERE user_id = $1 ORDER BY created_at DESC', [userid])
+    let posts = query.rows
+    for (let post of posts) {
+        // on récupère les liens aux tags
+        let tags_query = await client.query('SELECT * FROM post_tag WHERE post_id = $1', [post.id])
+        let tags_id = []
+        for (let i = 0; i < 3; i++) {
+            if (tags_query.rows[i])
+                tags_id.push(tags_query.rows[i].tag_id)
+            else tags_id.push(0)
+        }
+        // On récupère les noms des tags
+        tags_query = await client.query('SELECT * FROM tags WHERE id = $1 OR id = $2 OR id = $3', tags_id)
+        let tags = []
+        for (let i of tags_query.rows) {
+            tags.push(i.tag_name)
+        }
+        post.tags = tags
+    }
+    res.json({list: posts})
+})
+
+router.post('/post', async (req, res) => {
+    if (req.session.user.data) {
+        const title = req.body.title.substr(0, 400) // On crop si l'utilisateur n'a pas respecté le form
+        const content = req.body.content
+        let tags = req.body.tags
+        for (let i = 0; i < 3; i++) {
+            if (!tags[i]) {
+                tags.push('')
+            }
+        }
+
+        if (typeof title !== 'string' ||
+            typeof content !== 'string' ||
+            typeof tags !== 'object') {
+            return res.status(400).json({message: 'bad request', code: 3})
+        }
+        // On insère dans la table poste les données du post
+        const created_at = new Date()
+        const query = await client.query('INSERT INTO POSTS(title, content, created_at, user_id) VALUES ($1, $2, $3, $4) RETURNING id', [title, content, created_at, req.session.user.data.id])
+        const post_id = query.rows[0].id
+        // On vérifie si les tags existent déjà
+        const verif_tag_query = await client.query('SELECT * FROM tags WHERE tag_name = $1 OR tag_name =  $2 OR tag_name =  $3', tags)
+        const verif_tag = verif_tag_query.rows
+        for (let i of tags) {
+            let tag = verif_tag.find(tag => tag.tag_name === i)
+            // S'ils existent pas on les crée et on les link on post
+            if (!tag && i !== '') {
+                const tag_id_query = await client.query('INSERT INTO tags(tag_name) VALUES ($1) RETURNING id', [i])
+                const tag_id = tag_id_query.rows[0].id
+                await client.query('INSERT INTO post_tag(post_id, tag_id) VALUES($1, $2)', [post_id, tag_id])
+            } else if (i !== '') {
+                // Sinon on les links juste au tags existant
+                await client.query('INSERT INTO post_tag(post_id, tag_id) VALUES($1, $2)', [post_id, tag.id])
+            }
+        }
+        return res.json({post: {title: title, content: content, tags: tags, created_at: created_at}})
+    } else return res.status(403)
 })
 
 
