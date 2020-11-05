@@ -93,7 +93,7 @@ const actions = {
             })
     },
     fetch_post: async ({commit}, user) => {
-        await axios.get('/api/post/'+user)
+        await axios.get('/api/post/' + user)
             .then(response => {
                 commit('SET_POST_LIST', response.data.list)
             })
@@ -104,6 +104,12 @@ const actions = {
                 commit('ADD_POST', response.data.post)
             })
 
+    },
+    delete_post: async ({commit}, id) => {
+        await axios.delete('/api/post/' + id)
+            .then(response => {
+                commit('DELETE_POST', response.data.id)
+            })
     }
 }
 
@@ -123,6 +129,13 @@ const mutations = {
     },
     SET_POST_LIST(state, list) {
         state.post_list = list
+    },
+    DELETE_POST(state, id) {
+        for (let i = 0; i < state.post_list.length; i++) {
+            if (state.post_list[i].id === parseInt(id)) {
+                state.post_list = state.post_list.splice(i, 1)
+            }
+        }
     }
 
 }

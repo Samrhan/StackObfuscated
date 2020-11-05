@@ -189,24 +189,26 @@ router.post('/post', async (req, res) => {
     if (req.session.user.data) {
         const title = req.body.title.substr(0, 400) // On crop si l'utilisateur n'a pas respecté le form
         const content = req.body.content
+        const code = req.body.code
         let tags = req.body.tags
         for (let i = 0; i < 3; i++) {
             if (!tags[i]) {
                 tags.push('')
             }
         }
-
         if (typeof title !== 'string' ||
             typeof content !== 'string' ||
-            typeof tags !== 'object') {
+            typeof tags !== 'object' ||
+            typeof code !== 'string'
+        ) {
             return res.status(400).json({message: 'bad request', code: 3})
         }
         // On insère dans la table poste les données du post
         const created_at = new Date()
-        const query = await client.query('INSERT INTO POSTS(title, content, created_at, user_id) VALUES ($1, $2, $3, $4) RETURNING id', [title, content, created_at, req.session.user.data.id])
+        const query = await client.query('INSERT INTO POSTS(title, content, created_at, user_id, code) VALUES ($1, $2, $3, $4, $5) RETURNING id', [title, content, created_at, req.session.user.data.id, code])
         const post_id = query.rows[0].id
-        // On vérifie si les tags existent déjà
-        const verif_tag_query = await client.query('SELECT * FROM tags WHERE tag_name = $1 OR tag_name =  $2 OR tag_name =  $3', tags)
+        // On récupère les tags liées, et on incrémente le nombre d'utilisation
+        const verif_tag_query = await client.query('UPDATE tags SET used = used +1 WHERE tag_name = $1 OR tag_name =  $2 OR tag_name =  $3 RETURNING *', tags)
         const verif_tag = verif_tag_query.rows
         for (let i of tags) {
             let tag = verif_tag.find(tag => tag.tag_name === i)
@@ -220,7 +222,39 @@ router.post('/post', async (req, res) => {
                 await client.query('INSERT INTO post_tag(post_id, tag_id) VALUES($1, $2)', [post_id, tag.id])
             }
         }
-        return res.json({post: {title: title, content: content, tags: tags, created_at: created_at}})
+        for (let i = 0; i < 3; i++) {
+            if (tags[i] === '') {
+                tags = tags.splice(i, 1)
+            }
+        }
+        if (tags.length === 1 && tags[0] === '')
+            tags = []
+        return res.json({
+            post: {
+                title: title,
+                content: content,
+                tags: tags,
+                created_at: created_at,
+                votes: 0,
+                code: code,
+                id: post_id
+            }
+        })
+    } else return res.status(403)
+})
+
+router.delete('/post/:postid', async (req, res) => {
+    if (req.session.user.data) {
+        const id = req.params.postid // On crop si l'utilisateur n'a pas respecté le form
+        if (isNaN(id)) {
+            return res.status(400).json({message: 'bad request', code: 3})
+        }
+        let query = await client.query('SELECT user_id FROM posts WHERE id = $1', [id])
+        if (query.rows[0].user_id === req.session.user.data.id) { // On vérifie si l'utilisateur est bien l'auteur du post
+            await client.query('DELETE FROM posts WHERE id = $1', [id])
+            await client.query('DELETE FROM post_tag WHERE post_id = $1', [id])
+        } else return res.status(403)
+        return res.json({id: id})
     } else return res.status(403)
 })
 

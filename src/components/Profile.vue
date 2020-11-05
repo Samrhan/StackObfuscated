@@ -4,18 +4,13 @@
       <div class="row">
         <div class="col-md-12">
           <div id="content" class="content content-full-width">
-            <!-- begin profile -->
             <div class="profile">
               <div class="profile-header row">
-                <!-- BEGIN profile-header-cover -->
                 <div class="profile-header-cover col" v-bind:style="{backgroundImage:`url(${user.bg_pic})`}"
                      v-if="user.bg_pic && user.bg_pic.length !== 0"></div>
                 <div class="profile-header-cover col"
                      v-bind:style="{backgroundImage:`url(https://www.bootdey.com/img/Content/bg1.jpg)`}" v-else></div>
-                <!-- END profile-header-cover -->
-                <!-- BEGIN profile-header-content -->
                 <div class="profile-header-content col">
-                  <!-- BEGIN profile-header-img -->
                   <div class="profile-header-img rounded-circle">
                     <img class="rounded-circle" v-if="user.profile_pic" :src="user.profile_pic" alt="">
                     <img class="rounded-circle"
@@ -79,8 +74,11 @@
                                  src="https://cdn.vox-cdn.com/thumbor/ICjwWQhDmr48CIKabxxQilwTVfg=/0x0:786x393/920x613/filters:focal(331x135:455x259):format(webp)/cdn.vox-cdn.com/uploads/chorus_image/image/65101167/obi-wan.0.0.jpg"
                                  alt="Photo par défaut" v-else>
                           </span>
-                            <span class="username"><a>{{ $route.params.username }}</a> <small></small></span>
+                            <span class="username"><a>{{ $route.params.username }}</a> <small></small>
+                            </span>
+                            <i v-if="owner" class="fa fa-trash" v-on:click="deletePost(post.id)" style="cursor:pointer;" title="Supprimer le post"></i>
                           </div>
+
                           <div class="timeline-title">
                             <p>
                               {{ post.title }}
@@ -90,6 +88,8 @@
                             <p>
                               {{ post.content }}
                             </p>
+                            <prism-editor :highlight="highlighter" readonly language="javascript"
+                                          v-if="post.code && post.code !== ''" v-model="post.code"></prism-editor>
                           </div>
                           <div class='tag-input form-group post-tags'>
                             <div v-for='tag in post.tags' :key='tag' class='tag-input__tag'>
@@ -105,7 +105,7 @@
                               <i class="fa fa-circle fa-stack-2x text-primary"></i>
                               <i class="fa fa-thumbs-up fa-stack-1x fa-inverse"></i>
                             </span>
-                              <span class="stats-total">4.3k</span>
+                              <span class="stats-total">{{ post.votes }}</span>
                             </div>
                           </div>
                           <div class="timeline-footer" v-if="$store.state.user">
@@ -134,7 +134,7 @@
               </div>
             </div>
             <div v-else>
-              <h3  class="masthead-heading mb-0" style="text-align: center">L'utilisateur n'a créé aucun post :(</h3>
+              <h3 class="masthead-heading mb-0" style="text-align: center">L'utilisateur n'a créé aucun post :(</h3>
             </div>
           </div>
         </div>
@@ -171,6 +171,16 @@
                     <label for="input-post">Post : </label>
                     <textarea class="form-control" id="input-post" rows="7" v-model="new_post.content"></textarea>
                   </div>
+                  <div class="form-group">
+                    <button type="button" class="btn btn-primary" v-if="!insert_code" v-on:click="insert_code = true">
+                      Insérer du code
+                    </button>
+                    <div v-if="insert_code" class="insert-code">
+                      <label for="input-post">Code :</label>
+                      <prism-editor class="my-editor" v-model="new_post.code" :highlight="highlighter"
+                                    line-numbers></prism-editor>
+                    </div>
+                  </div>
                   <div class='tag-input form-group'>
                     <div v-for='tag in new_post.tags' :key='tag' class='tag-input__tag' id="tag-box">
                       <span @click='removeTag(new_post.tags.indexOf(tag))'>x</span>
@@ -187,7 +197,7 @@
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" data-dismiss="modal">Annuler</button>
-            <button type="button" class="btn btn-primary" v-on:click="submitPost">Poster</button>
+            <button type="button" class="btn btn-primary" data-dismiss="modal" v-on:click="submitPost">Poster</button>
           </div>
         </div>
       </div>
@@ -196,13 +206,24 @@
 </template>
 
 <script>
+import {PrismEditor} from 'vue-prism-editor';
+import 'vue-prism-editor/dist/prismeditor.min.css'; // import the styles somewhere
+import {highlight, languages} from 'prismjs/components/prism-core';
+import 'prismjs/components/prism-clike';
+import 'prismjs/components/prism-javascript';
+import 'prismjs/themes/prism-tomorrow.css'; // import syntax highlighting styles
+
 export default {
   name: "Profile",
+  components: {
+    PrismEditor
+  },
   data() {
     return {
       user: undefined,
       owner: false,
       editing: false,
+      insert_code: false,
       profile: {
         bio: '',
         profile_pic: '',
@@ -211,6 +232,7 @@ export default {
       new_post: {
         title: '',
         content: '',
+        code: '',
         tags: []
       },
       posts: []
@@ -264,8 +286,21 @@ export default {
       }
     },
     async submitPost() {
-      await this.$store.dispatch('submit_post', this.new_post)
-      console.log(this.$store.state.post_list)
+      if (this.new_post.title !== '' && this.new_post.content !== '') {
+        await this.$store.dispatch('submit_post', this.new_post)
+        this.new_post.title = ''
+        this.new_post.content = ''
+      }
+      this.new_post.code = ''
+      this.insert_code = false
+      this.new_post.tags = []
+
+    },
+    async deletePost(id) {
+      await this.$store.dispatch('delete_post', id)
+    },
+    highlighter(code) {
+      return highlight(code, languages.js)
     }
   }
 }
@@ -356,6 +391,7 @@ export default {
   white-space: nowrap;
   border-radius: 0
 }
+
 .profile-header .profile-header-tab > li {
   display: inline-block;
   margin: 0
@@ -744,7 +780,13 @@ export default {
 .post-tags {
   border: 0;
   padding: 0;
-  border-top: 1px solid #e2e7eb;
+  border-top: 1px solid lightgray;
   border-radius: 0
+}
+
+.insert-code {
+  border: 1px solid lightgray;
+  border-radius: 20px;
+  padding: 15px;
 }
 </style>
