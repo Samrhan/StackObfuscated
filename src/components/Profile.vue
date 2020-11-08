@@ -6,17 +6,15 @@
           <div id="content" class="content content-full-width">
             <div class="profile">
               <div class="profile-header row">
-                <div class="profile-header-cover col" v-bind:style="{backgroundImage:`url(${user.bg_pic})`}"
-                     v-if="user.bg_pic && user.bg_pic.length !== 0"></div>
                 <div class="profile-header-cover col"
-                     v-bind:style="{backgroundImage:`url(https://www.bootdey.com/img/Content/bg1.jpg)`}" v-else></div>
+                     v-bind:style="{backgroundImage:`url(${user.bg_pic && user.bg_pic.length !== 0 ? user.bg_pic: 'https://www.bootdey.com/img/Content/bg1.jpg'})`}"
+                ></div>
                 <div class="profile-header-content col">
                   <div class="profile-header-img rounded-circle">
-                    <img class="rounded-circle" v-if="user.profile_pic" :src="user.profile_pic" alt="">
+                    <!-- Petit tour de magie pour qu'on ne puisse pas tracer l'origine de la requête si qqn met une url qui redirige vers son propre serveur -->
                     <img class="rounded-circle"
-                         src="https://cdn.vox-cdn.com/thumbor/ICjwWQhDmr48CIKabxxQilwTVfg=/0x0:786x393/920x613/filters:focal(331x135:455x259):format(webp)/cdn.vox-cdn.com/uploads/chorus_image/image/65101167/obi-wan.0.0.jpg"
-                         alt="" v-else>
-
+                         :src="'https://images1-focus-opensocial.googleusercontent.com/gadgets/proxy?container=focus&refresh=2592000&url='+(user.profile_pic ? user.profile_pic : 'https://cdn.vox-cdn.com/thumbor/ICjwWQhDmr48CIKabxxQilwTVfg=/0x0:786x393/920x613/filters:focal(331x135:455x259):format(webp)/cdn.vox-cdn.com/uploads/chorus_image/image/65101167/obi-wan.0.0.jpg')"
+                         alt="" crossorigin="Anonymous" ref="bg_image">
                   </div>
                   <div class="profile-header-info">
                     <h4 class="m-t-10 m-b-5 bio">{{ $route.params.username }}</h4>
@@ -25,10 +23,13 @@
                       <small class="text-muted">Ajoutez une biographie pour vous présenter !</small>
                     </p>
                     <div id="owner-buttons" v-if="owner">
-                      <a class="btn btn-sm btn-info mb-2" v-if="!editing" v-on:click="editing = true">Editer votre
+                      <a class="btn btn-sm btn-info mb-2" v-if="!editing" v-on:click="editing = true">Editer
+                        votre
                         profil</a>
-                      <a class="btn btn-sm btn-info mb-2" v-else v-on:click="submit_edit">Confirmer</a>
-                      <a class="btn btn-sm btn-info mb-2" data-toggle="modal" data-target="#create-post">
+                      <a class="btn btn-sm btn-info mb-2" v-else ref="button-confirm"
+                         v-on:click="submit_edit">Confirmer</a>
+                      <a class="btn btn-sm btn-info mb-2" ref="button-post" data-toggle="modal"
+                         data-target="#create-post">
                         Poser une question
                       </a>
                     </div>
@@ -76,9 +77,9 @@
                           </span>
                             <span class="username"><a>{{ $route.params.username }}</a> <small></small>
                             </span>
-                            <i v-if="owner" class="fa fa-trash" v-on:click="deletePost(post.id)" style="cursor:pointer;" title="Supprimer le post"></i>
+                            <i v-if="owner" class="fa fa-trash" v-on:click="deletePost(post.id)" style="cursor:pointer;"
+                               title="Supprimer le post"></i>
                           </div>
-
                           <div class="timeline-title">
                             <p>
                               {{ post.title }}
@@ -213,6 +214,7 @@ import 'prismjs/components/prism-clike';
 import 'prismjs/components/prism-javascript';
 import 'prismjs/themes/prism-tomorrow.css'; // import syntax highlighting styles
 
+
 export default {
   name: "Profile",
   components: {
@@ -273,7 +275,7 @@ export default {
       if (val.length > 0) {
         val = val.substr(0, 10);
         if (this.new_post.tags.indexOf(val) === -1 && this.new_post.tags.length < 3)
-          this.new_post.tags.push(val)
+          this.new_post.tags.push(val.toLowerCase())
         event.target.value = ''
       }
     },
@@ -294,13 +296,12 @@ export default {
       this.new_post.code = ''
       this.insert_code = false
       this.new_post.tags = []
-
     },
     async deletePost(id) {
       await this.$store.dispatch('delete_post', id)
     },
     highlighter(code) {
-      return highlight(code, languages.js)
+      return highlight(code, languages.js) // Permet la coloration syntaxique de code
     }
   }
 }

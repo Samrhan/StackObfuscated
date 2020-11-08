@@ -19,7 +19,7 @@
           </li>
           <li class="nav-item">
             <a class="nav-link">
-              <router-link class="router-link" :to="{name:'home'}">Forum
+              <router-link class="router-link" :to="{name:'forum'}">Forum
               </router-link>
             </a>
           </li>
@@ -69,7 +69,8 @@
 module.exports = {
   methods: {},
   async mounted() {
-    await this.$store.dispatch('me')
+    if (this.$route.name !== 'profile') // on charge déjà me au mounted de la page profile
+      await this.$store.dispatch('me')
   }
 }
 </script>

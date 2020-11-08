@@ -258,6 +258,29 @@ router.delete('/post/:postid', async (req, res) => {
     } else return res.status(403)
 })
 
+router.get('/tags/popular/:start', async (req, res) => {
+    const start = parseInt(req.params.start)
+    if (isNaN(start)) {
+        return res.status(400)
+    }
+    let tags = []
+    let query = await client.query("SELECT * FROM tags ORDER BY used DESC LIMIT 10 OFFSET $1", [start])
+    tags = query.rows;
+    query = await client.query('SELECT COUNT(*) FROM tags')
+    let number = query.rows[0].count
+    for (let i of tags) {
+        // Différent de la colonne used parce que pas actualisé quand un post est supprimé
+        query = await client.query("SELECT COUNT(*) FROM post_tag WHERE tag_id = $1", [i.id])
+        i.post_number = query.rows[0].count
+        query = await client.query("SELECT post_id FROM post_tag WHERE tag_id = $1 ORDER BY post_id DESC LIMIT 1", [i.id])
+        if (query.rows[0]) {
+            query = await client.query("SELECT * FROM posts WHERE id = $1", [query.rows[0].post_id])
+            i.post = query.rows[0]
+        }
+    }
+    res.json({tags: tags, number:number})
+
+})
 
 module.exports = router;
 

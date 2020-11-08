@@ -6,6 +6,8 @@ import Home from './components/Home'
 import Register from './components/Register'
 import Login from './components/Login'
 import Profile from './components/Profile'
+import Forum from './components/Forum'
+
 import axios from 'axios'
 
 
@@ -20,7 +22,8 @@ const routes = [
     {path: '/home', component: Home, name: 'home'},
     {path: '/register', component: Register, name: 'register'},
     {path: '/login', component: Login, name: 'login'},
-    {path: '/profile/:username', component: Profile, name: 'profile'}
+    {path: '/profile/:username', component: Profile, name: 'profile'},
+    {path: '/forum', component: Forum, name: 'forum'}
 
 ]
 
@@ -35,7 +38,9 @@ const state = {
     status: 0,
     user: undefined,
     tmp_user: undefined,
-    post_list: []
+    post_list: [],
+    popular_tags: [],
+    tag_number: 0
 }
 
 //to handle state
@@ -110,7 +115,15 @@ const actions = {
             .then(response => {
                 commit('DELETE_POST', response.data.id)
             })
+    },
+    popular_tags: async ({commit}, start) => {
+        await axios.get('/api/tags/popular/' + start)
+            .then(response => {
+                commit('SET_POPULAR_TAGS', response.data)
+            })
     }
+
+
 }
 
 //to handle mutations
@@ -125,7 +138,7 @@ const mutations = {
         state.tmp_user = user
     },
     ADD_POST(state, post) {
-        state.post_list.push(post)
+        state.post_list.unshift(post)
     },
     SET_POST_LIST(state, list) {
         state.post_list = list
@@ -136,6 +149,10 @@ const mutations = {
                 state.post_list = state.post_list.splice(i, 1)
             }
         }
+    },
+    SET_POPULAR_TAGS(state, data){
+        state.popular_tags = data.tags
+        state.tag_number = data.number
     }
 
 }
