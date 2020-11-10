@@ -142,13 +142,17 @@ router.post('/editprofile', async (req, res) => {
     } else return res.status(403)
 });
 
-router.get('/user/:username', async (req, res) => {
-    const username = req.params.username
-    if (typeof username !== 'string' || username === '') {
+router.get('/user/:user_id', async (req, res) => {
+    const user_id = req.params.user_id
+    if (typeof user_id !== 'string' || user_id === '') {
         return res.status(401).json({response: 'forbidden'})
     }
-    const query = await client.query("SELECT note,bio,profile_pic,bg_pic,id FROM users WHERE username = $1", [username])
-    res.json({user: query.rows})
+    let search_method = 'username'
+    if (!isNaN(parseInt(user_id)))
+        search_method = 'id'
+    const query = await client.query(`SELECT * FROM users WHERE ${search_method} = $1`, [user_id])
+    delete query.rows[0].password
+    res.json({user: query.rows[0]})
 })
 
 router.post('/logout', (req, res) => {
@@ -156,7 +160,7 @@ router.post('/logout', (req, res) => {
     res.json({status: 'done'})
 })
 
-router.get('/post/:userid', async (req, res) => {
+router.get('/posts/:userid', async (req, res) => {
     let userid = req.params.userid
     userid = parseInt(userid)
     if (isNaN(userid)) {
@@ -183,6 +187,27 @@ router.get('/post/:userid', async (req, res) => {
         post.tags = tags
     }
     res.json({list: posts})
+})
+
+router.get('/post/:post_id', async (req, res) => {
+    const post_id = parseInt(req.params.post_id)
+    if (isNaN(post_id)) {
+        return res.status(400).json({message: 'bad request'})
+    }
+    let query = await client.query('SELECT * FROM posts WHERE id = $1', [post_id])
+    let post = query.rows[0]
+    if (!post) {
+        res.status(404).json({message: 'Non trouvé'})
+    }
+    query = await client.query('SELECT tag_id FROM post_tag WHERE post_id = $1', [post_id])
+    let tags_id = query.rows
+    let tags = []
+    for (let i of tags_id) {
+        query = await client.query('SELECT tag_name FROM tags WHERE id = $1', [i.tag_id])
+        tags.push(query.rows[0].tag_name)
+    }
+    post.tags = tags;
+    res.json({post: post})
 })
 
 router.post('/post', async (req, res) => {
@@ -278,7 +303,41 @@ router.get('/tags/popular/:start', async (req, res) => {
             i.post = query.rows[0]
         }
     }
-    res.json({tags: tags, number:number})
+    res.json({tags: tags, number: number})
+
+})
+
+
+router.get('/tags/posts/:start/:tag_name', async (req, res) => {
+    const tag_name = req.params.tag_name
+    const start = parseInt(req.params.start)
+    if (typeof tag_name !== 'string' || isNaN(start)) {
+        return res.status(400)
+    }
+    let posts
+    let query = await client.query("SELECT id FROM tags WHERE tag_name = $1", [tag_name])
+    if (query.rows.length === 0)
+        return res.status(404).json({message: 'non trouvé'})
+    let tag_id = query.rows[0].id
+    query = await client.query("SELECT * FROM post_tag WHERE tag_id = $1 ORDER BY post_id DESC LIMIT 10 OFFSET $2", [tag_id, start])
+    posts = query.rows;
+    query = await client.query("SELECT COUNT(*) FROM post_tag WHERE tag_id = $1", [tag_id])
+    let number = query.rows[0].count
+    for (let i = 0; i < posts.length; i++) {
+
+        // Différent de la colonne used parce que pas actualisé quand un post est supprimé
+        query = await client.query("SELECT * FROM posts WHERE id = $1 ORDER BY created_at DESC", [posts[i].post_id])
+        posts[i] = query.rows[0]
+        query = await client.query('SELECT tag_id FROM post_tag WHERE post_id = $1', [posts[i].id])
+        let tags_id = query.rows
+        let tags = []
+        for (let i of tags_id) {
+            query = await client.query('SELECT tag_name FROM tags WHERE id = $1', [i.tag_id])
+            tags.push(query.rows[0].tag_name)
+        }
+        posts[i].tags = tags;
+    }
+    res.json({posts: posts, number: number})
 
 })
 

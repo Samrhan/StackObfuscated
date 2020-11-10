@@ -11,7 +11,9 @@
                 ></div>
                 <div class="profile-header-content col">
                   <div class="profile-header-img rounded-circle">
-                    <!-- Petit tour de magie pour qu'on ne puisse pas tracer l'origine de la requête si qqn met une url qui redirige vers son propre serveur -->
+                    <!-- Petit tour de magie pour qu'on ne puisse pas tracer l'origine de la requête si
+                    qqn met une url qui redirige vers son propre serveur,
+                    et qui en plus se chargera de vérifier le fichier pour nous :) -->
                     <img class="rounded-circle"
                          :src="'https://images1-focus-opensocial.googleusercontent.com/gadgets/proxy?container=focus&refresh=2592000&url='+(user.profile_pic ? user.profile_pic : 'https://cdn.vox-cdn.com/thumbor/ICjwWQhDmr48CIKabxxQilwTVfg=/0x0:786x393/920x613/filters:focal(331x135:455x259):format(webp)/cdn.vox-cdn.com/uploads/chorus_image/image/65101167/obi-wan.0.0.jpg')"
                          alt="" crossorigin="Anonymous" ref="bg_image">
@@ -60,7 +62,7 @@
                   <div class="tab-pane fade active show" id="profile-post">
                     <ul class="timeline">
                       <li>
-                        <div class="timeline-time">
+                        <div class="timeline-time" id="date-desktop">
                           <span class="date">{{ post.created_at | moment("DD/MM/YYYY") }}</span>
                           <span class="time">{{ post.created_at | moment("HH:mm") }}</span>
                         </div>
@@ -75,10 +77,14 @@
                                  src="https://cdn.vox-cdn.com/thumbor/ICjwWQhDmr48CIKabxxQilwTVfg=/0x0:786x393/920x613/filters:focal(331x135:455x259):format(webp)/cdn.vox-cdn.com/uploads/chorus_image/image/65101167/obi-wan.0.0.jpg"
                                  alt="Photo par défaut" v-else>
                           </span>
-                            <span class="username"><a>{{ $route.params.username }}</a> <small></small>
-                            </span>
+                            <span class="username"><a>{{ $route.params.username }}</a>
+                            </span>&nbsp;
                             <i v-if="owner" class="fa fa-trash" v-on:click="deletePost(post.id)" style="cursor:pointer;"
-                               title="Supprimer le post"></i>
+                               title="Supprimer le post"></i><br>
+                            <small id="date-mobile">
+                              <span class="date">{{ post.created_at | moment("DD/MM/YYYY") }}</span>&nbsp;
+                              <span class="time">{{ post.created_at | moment("HH:mm") }}</span>
+                            </small>
                           </div>
                           <div class="timeline-title">
                             <p>
@@ -245,11 +251,14 @@ export default {
     if (this.$store.state.user && this.$route.params.username === this.$store.state.user.username) {
       this.user = this.$store.state.user
       this.owner = true
-    } else if (this.$store.state.tmp_user && this.$store.state.tmp_user[0].username === this.$route.params.username) {
-      this.user = this.$store.state.tmp_user // Si on a déjà l'utilisateur dans le cache on ne le recharge pas
+    } else if (this.$store.state.tmp_user) {
+      let user_id = this.$store.state.username_to_id[this.$route.params.username]
+      if (user_id)
+        this.user = this.$store.state.tmp_user[user_id] // Si on a déjà l'utilisateur dans le cache on ne le recharge pas
     } else {
       await this.$store.dispatch('get_user', this.$route.params.username)
-      this.user = this.$store.state.tmp_user[0]
+      let user_id = this.$store.state.username_to_id[this.$route.params.username]
+      this.user = this.$store.state.tmp_user[user_id]
       if (this.user === undefined) {
         return this.$router.replace({name: 'home'})
       }
@@ -258,7 +267,7 @@ export default {
     this.profile.bg_pic = this.user.bg_pic
     this.profile.profile_pic = this.user.profile_pic
 
-    await this.$store.dispatch('fetch_post', this.user.id)
+    await this.$store.dispatch('fetch_posts', this.user.id)
     this.posts = this.$store.state.post_list
 
   },
@@ -419,6 +428,13 @@ export default {
   border-radius: 4px
 }
 
+@media (max-width: 900px) {
+  .profile-content {
+    padding: 25px 0;
+    border-radius: 4px
+  }
+}
+
 .profile-content:after,
 .profile-content:before {
   content: '';
@@ -508,91 +524,108 @@ export default {
   position: relative
 }
 
-.timeline:before {
-  content: '';
-  position: absolute;
-  top: 5px;
-  bottom: 5px;
-  width: 5px;
-  background: #2d353c;
-  left: 20%;
-  margin-left: -2.5px
-}
-
-.timeline > li {
-  position: relative;
-  min-height: 50px;
-  padding: 20px 0
-}
-
-.timeline .timeline-time {
-  position: absolute;
-  left: 0;
-  width: 18%;
-  text-align: right;
-  top: 30px
-}
-
-.timeline .timeline-time .date,
-.timeline .timeline-time .time {
-  display: block;
-  font-weight: 600
-}
-
-.timeline .timeline-time .date {
-  line-height: 16px;
-  font-size: 12px
-}
-
-.timeline .timeline-time .time {
-  line-height: 24px;
-  font-size: 20px;
-  color: #242a30
-}
-
-.timeline .timeline-icon {
-  left: 15%;
-  position: absolute;
-  width: 10%;
-  text-align: center;
-  top: 40px
-}
-
-.timeline .timeline-icon a {
-  text-decoration: none;
-  width: 20px;
-  height: 20px;
-  display: inline-block;
-  border-radius: 20px;
-  background: #d9e0e7;
-  line-height: 10px;
-  color: #fff;
-  font-size: 14px;
-  border: 5px solid #2d353c;
-  transition: border-color .2s linear
-}
-
 .timeline .timeline-body {
-  margin-left: 23%;
-  margin-right: 17%;
+  margin: 20px 0;
   background: #fff;
   position: relative;
   padding: 20px 25px;
   border-radius: 6px
 }
 
-.timeline .timeline-body:before {
-  content: '';
-  display: block;
-  position: absolute;
-  border: 10px solid transparent;
-  border-right-color: #fff;
-  left: -20px;
-  top: 20px
+@media (max-width: 900px) {
+  #date-desktop {
+    display: none;
+  }
 }
 
-.timeline .timeline-body > div + div {
-  margin-top: 15px
+@media (min-width: 900px) {
+
+  #date-mobile{
+    display: none;
+  }
+
+  .timeline .timeline-body {
+    margin-left: 23%;
+    margin-right: 17%;
+  }
+
+  .timeline:before {
+    content: '';
+    position: absolute;
+    top: 5px;
+    bottom: 5px;
+    width: 5px;
+    background: #2d353c;
+    left: 20%;
+    margin-left: -2.5px
+  }
+
+  .timeline > li {
+    position: relative;
+    min-height: 50px;
+    padding: 20px 0
+  }
+
+  .timeline .timeline-time {
+    position: absolute;
+    left: 0;
+    width: 18%;
+    text-align: right;
+    top: 30px
+  }
+
+  .timeline .timeline-time .date,
+  .timeline .timeline-time .time {
+    display: block;
+    font-weight: 600
+  }
+
+  .timeline .timeline-time .date {
+    line-height: 16px;
+    font-size: 12px
+  }
+
+  .timeline .timeline-time .time {
+    line-height: 24px;
+    font-size: 20px;
+    color: #242a30
+  }
+
+  .timeline .timeline-icon {
+    left: 15%;
+    position: absolute;
+    width: 10%;
+    text-align: center;
+    top: 40px
+  }
+
+  .timeline .timeline-icon a {
+    text-decoration: none;
+    width: 20px;
+    height: 20px;
+    display: inline-block;
+    border-radius: 20px;
+    background: #d9e0e7;
+    line-height: 10px;
+    color: #fff;
+    font-size: 14px;
+    border: 5px solid #2d353c;
+    transition: border-color .2s linear
+  }
+
+  .timeline .timeline-body:before {
+    content: '';
+    display: block;
+    position: absolute;
+    border: 10px solid transparent;
+    border-right-color: #fff;
+    left: -20px;
+    top: 20px
+  }
+
+  .timeline .timeline-body > div + div {
+    margin-top: 15px
+  }
 }
 
 .timeline .timeline-body > div + div:last-child {
