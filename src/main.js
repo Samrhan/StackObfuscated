@@ -7,6 +7,8 @@ import Register from './components/Register'
 import Login from './components/Login'
 import Profile from './components/Profile'
 import Forum from './components/Forum'
+import TagPage from './components/forum/tag_page'
+import Post from './components/forum/Post'
 
 import axios from 'axios'
 
@@ -23,7 +25,9 @@ const routes = [
     {path: '/register', component: Register, name: 'register'},
     {path: '/login', component: Login, name: 'login'},
     {path: '/profile/:username', component: Profile, name: 'profile'},
-    {path: '/forum', component: Forum, name: 'forum'}
+    {path: '/forum', component: Forum, name: 'forum'},
+    {path: '/forum/tag/:tag_name', component: TagPage, name: 'tagpage'},
+    {path: '/forum/post/:post_id', component: Post, name: 'post'}
 
 ]
 
@@ -40,7 +44,10 @@ const state = {
     tmp_user: undefined,
     post_list: [],
     popular_tags: [],
-    tag_number: 0
+    tag_number: 0,
+    tags_posts: [],
+    tags_posts_number: 0,
+    username_to_id: {}
 }
 
 //to handle state
@@ -93,14 +100,19 @@ const actions = {
         await axios.get('/api/user/' + user)
             .then(response => {
                 let user = response.data.user
-                user.username = user
                 commit('SET_TMP_USER', user)
             })
     },
-    fetch_post: async ({commit}, user) => {
-        await axios.get('/api/post/' + user)
+    fetch_posts: async ({commit}, user) => {
+        await axios.get('/api/posts/' + user)
             .then(response => {
                 commit('SET_POST_LIST', response.data.list)
+            })
+    },
+    fetch_post: async ({commit}, post_id) => {
+        await axios.get('/api/post/' + post_id)
+            .then(response => {
+                commit('SET_POST_LIST', [response.data.post])
             })
     },
     submit_post: async ({commit}, post) => {
@@ -108,7 +120,6 @@ const actions = {
             .then(response => {
                 commit('ADD_POST', response.data.post)
             })
-
     },
     delete_post: async ({commit}, id) => {
         await axios.delete('/api/post/' + id)
@@ -121,6 +132,12 @@ const actions = {
             .then(response => {
                 commit('SET_POPULAR_TAGS', response.data)
             })
+    },
+    get_tag_post: async ({commit}, payload) => {
+        await axios.get('/api/tags/posts/' + payload.start + '/' + payload.name)
+            .then(response => {
+                commit('SET_TAG_POST_LIST', response.data)
+            }).catch(()=>{})
     }
 
 
@@ -135,7 +152,11 @@ const mutations = {
         state.user = user
     },
     SET_TMP_USER(state, user) {
-        state.tmp_user = user
+        // Crée une liste d'utilisateur en cache
+        if (!state.tmp_user)
+            state.tmp_user = {}
+        state.tmp_user[user.id] = user
+        state.username_to_id[user.username] = user.id
     },
     ADD_POST(state, post) {
         state.post_list.unshift(post)
@@ -150,9 +171,13 @@ const mutations = {
             }
         }
     },
-    SET_POPULAR_TAGS(state, data){
+    SET_POPULAR_TAGS(state, data) {
         state.popular_tags = data.tags
         state.tag_number = data.number
+    },
+    SET_TAG_POST_LIST(state, data) {
+        state.tags_posts = data.posts
+        state.tags_posts_number = data.number
     }
 
 }
