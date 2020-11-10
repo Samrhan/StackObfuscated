@@ -1,5 +1,10 @@
 <template>
   <div class="forum">
+    <nav aria-label="breadcrumb" class="history">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item active" aria-current="page">Forum</li>
+      </ol>
+    </nav>
     <div id="leading" class="panel panel-forum">
       <div class="panel-heading">
         <a data-original-title="" title="">Forums</a>
@@ -64,7 +69,7 @@
           </tr>
           </thead>
           <tbody>
-          <tr class="forum-2" v-for="(tag, i) in popular_tags" :key="i">
+          <tr class="forum-2" v-for="(tag, i) in popular_tags" :key="i" v-on:click.prevent="goto(tag)">
             <td class="expand footable-visible footable-first-column" title="No unread posts"><span
                 class="footable-toggle"></span>
               <span class="icon-wrapper">
@@ -73,11 +78,14 @@
               <i class="row-icon-font-mini"></i>
               <span class="desc-wrapper">
                 <a class="forumtitle" data-original-title=""
-                   title="">{{ tag.tag_name[0].toUpperCase() + tag.tag_name.slice(1) }}</a><br><br>
+                   title="" :href="'/forum/'+tag.tag_name">{{
+                    tag.tag_name[0].toUpperCase() + tag.tag_name.slice(1)
+                  }}</a><br><br>
                 </span>
             </td>
             <td class="stats-col footable-visible">
                 <span class="stats-wrapper">
+                  <!-- On met des faux href pour simuler la route en bas à gauche de l'écran et on intercepte le click avec un v-on:click.prevent-->
                   {{ tag.post_number }}&nbsp;question{{
                     tag.post_number > 1 ? 's' : ''
                   }}&nbsp;<br>Utilisé&nbsp;{{ tag.used }}&nbsp;fois
@@ -102,14 +110,14 @@
               <i class="row-icon-font-mini"></i>
               <span class="desc-wrapper">
                 <nav aria-label="Page navigation example">
-  <ul class="pagination">
-    <li class="page-item" v-bind:class="{disabled:page === 1}"><a class="page-link" v-on:click="change_page(page-1)">&laquo;</a></li>
-    <li class="page-item" v-for="i in Math.floor(tag_number/10) + 1" :key="i" v-bind:class="{active:page=== i}"><a
-        class="page-link" v-on:click="change_page(i)">{{ i }}</a></li>
-    <li class="page-item" v-bind:class="{disabled:page === max_page}"><a class="page-link"
-                                                                         v-on:click="change_page(page+1)">&raquo;</a></li>
-  </ul>
-</nav>
+                  <ul class="pagination">
+                    <li class="page-item" v-bind:class="{disabled:page === 1}"><a class="page-link" v-on:click="change_page(page-1)">&laquo;</a></li>
+                    <li class="page-item" v-for="i in Math.floor(tag_number/10) + 1" :key="i" v-bind:class="{active:page=== i}"><a
+                        class="page-link" v-on:click="change_page(i)">{{ i }}</a></li>
+                    <li class="page-item" v-bind:class="{disabled:page === max_page}"><a class="page-link"
+                                                                                         v-on:click="change_page(page+1)">&raquo;</a></li>
+                  </ul>
+                </nav>
               </span>
             </td>
             <td class="stats-col footable-visible">
@@ -145,9 +153,12 @@ export default {
     change_page: async function (i) {
       if (this.page !== i) {
         this.page = i
-        await this.$store.dispatch('popular_tags', (i-1)*10)
+        await this.$store.dispatch('popular_tags', (i - 1) * 10)
         this.popular_tags = this.$store.state.popular_tags
       }
+    },
+    goto: async function (tag) {
+      await this.$router.push({name: 'tagpage', params: {tag_name: tag.tag_name}})
     }
   }
 }
@@ -156,6 +167,14 @@ export default {
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 
 <style scoped>
+
+.history {
+  margin: 100px 100px 20px;
+}
+
+.breadcrumb {
+  border-radius: 20px;
+}
 
 .forum {
   background: linear-gradient(0deg, #ff6a00 0%, #ee0979 100%) no-repeat scroll center center;
@@ -170,7 +189,7 @@ export default {
   background-color: #fff;
   border: medium #85869c;
   border-radius: 20px;
-  margin: 100px 100px 20px;
+  margin: 20px 100px;
 }
 
 #secondary {
@@ -178,12 +197,17 @@ export default {
 }
 
 @media (max-width: 700px) {
+
+  .history {
+    margin: 100px 0 20px;
+  }
+
   #leading {
-    margin: 13vh 0 0;
+    margin: 20px 0 0;
   }
 
   #secondary {
-    margin: 50px 0px 20px;
+    margin: 50px 0 20px;
   }
 
 

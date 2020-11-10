@@ -24,8 +24,9 @@
             </a>
           </li>
         </ul>
-        <form class="form-inline my-2 my-lg-0" v-on:submit.prevent="test">
-          <input class="form-control mr-sm-2 col-lg-100" type="search" placeholder="Search" aria-label="Search">
+        <form class="form-inline my-2 my-lg-0" v-on:submit.prevent="search">
+          <input class="form-control mr-sm-2 col-lg-100" type="search" placeholder="Search" aria-label="Search"
+                 v-model="input_search">
         </form>
         <ul class="navbar-nav my-2 my-lg-0" v-if="!$store.state.user">
           <li class="nav-item">
@@ -42,9 +43,7 @@
         <ul class="navbar-nav my-2 my-lg-0" v-else>
           <li class="nav-item">
             <a class="nav-link">
-              <router-link class="router-link" :to="{name:'profile', params:{username:$store.state.user.username}}"
-                           active-class="">Profil
-              </router-link>
+              <a class="router-link" :href="$router.resolve({name: 'profile', params:{username:this.$store.state.user.username}}).href">Profil</a>
             </a>
           </li>
           <li class="nav-item">
@@ -67,7 +66,16 @@
 
 <script>
 module.exports = {
-  methods: {},
+  data() {
+    return {
+      input_search: ''
+    }
+  },
+  methods: {
+    search: function () {
+      this.$router.replace({name: 'tagpage', params: {tag_name: this.input_search}})
+    }
+  },
   async mounted() {
     if (this.$route.name !== 'profile') // on charge déjà me au mounted de la page profile
       await this.$store.dispatch('me')
