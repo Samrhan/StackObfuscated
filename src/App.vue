@@ -1,32 +1,190 @@
 <template>
   <div id="app">
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-      <a class="navbar-brand" href="#">StackObfuscated</a>
-      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+    <nav class="navbar navbar-expand-lg navbar-dark navbar-custom fixed-top">
+      <a class="navbar-brand">
+        <router-link class="router-link" to="/">Stack\u004fbfuscated</router-link>
+      </a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbar"
+              aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
       </button>
 
-      <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <div class="collapse navbar-collapse" id="navbar">
         <ul class="navbar-nav mr-auto">
-          <li class="nav-item active">
-            <a class="nav-link" href="#">Home <span class="sr-only">(current)</span></a>
+          <li class="nav-item">
+            <a class="nav-link">
+              <router-link class="router-link" :to="{name:'home'}">Home
+              </router-link>
+            </a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="#">Memes</a>
+            <a class="nav-link">
+              <router-link class="router-link" :to="{name:'forum'}">Forum
+              </router-link>
+            </a>
           </li>
         </ul>
-        <form class="form-inline my-2 my-lg-0">
-          <input class="form-control mr-sm-2" type="search" placeholder="Search" aria-label="Search">
-          <button class="btn btn-outline-success my-2 my-sm-0" type="submit">Search</button>
+        <form class="form-inline my-2 my-lg-0" v-on:submit.prevent="search">
+          <input class="form-control mr-sm-2 col-lg-100" type="search" placeholder="Search" aria-label="Search"
+                 v-model="input_search">
         </form>
+        <ul class="navbar-nav my-2 my-lg-0" v-if="!$store.state.user">
+          <li class="nav-item">
+            <a class="nav-link">
+              <router-link class="router-link" :to="{name:'login'}">Login</router-link>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link">
+              <router-link class="router-link" :to="{name:'register'}">Register</router-link>
+            </a>
+          </li>
+        </ul>
+        <ul class="navbar-nav my-2 my-lg-0" v-else>
+          <li class="nav-item">
+            <a class="nav-link">
+              <a class="router-link" :href="$router.resolve({name: 'profile', params:{username:this.$store.state.user.username}}).href">Profil</a>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link">
+              <a class="router-link" v-on:click="$store.dispatch('logout')">Se déconnecter</a>
+            </a>
+          </li>
+        </ul>
       </div>
     </nav>
     <router-view></router-view>
+    <footer class="py-5">
+      <div class="container">
+        <p class="m-0 text-center text-white small">Copyright © StackObfuscated.com 2020</p>
+      </div>
+    </footer>
+
   </div>
 </template>
 
 <script>
+module.exports = {
+  data() {
+    return {
+      input_search: ''
+    }
+  },
+  methods: {
+    search: function () {
+      this.$router.replace({name: 'tagpage', params: {tag_name: this.input_search}})
+    }
+  },
+  async mounted() {
+    if (this.$route.name !== 'profile') // on charge déjà me au mounted de la page profile
+      await this.$store.dispatch('me')
+  }
+}
 </script>
 
 <style>
+@font-face {
+  font-family: Avenir Black;
+  src: url(assets/fonts/AvenirBlack.otf) format("opentype");
+  font-weight: 400;
+}
+
+@font-face {
+  font-family: Avenir Book;
+  src: url(assets/fonts/AvenirBook.otf) format("opentype");
+  font-weight: 400;
+}
+
+@font-face {
+  font-family: Avenir Heavy;
+  src: url(assets/fonts/AvenirHeavy.otf) format("opentype");
+  font-weight: 400;
+}
+
+@font-face {
+  font-family: Avenir Light;
+  src: url(assets/fonts/AvenirLight.otf) format("opentype");
+  font-weight: 400;
+}
+
+@font-face {
+  font-family: Avenir Medium;
+  src: url(assets/fonts/AvenirMedium.otf) format("opentype");
+  font-weight: 400;
+}
+
+@font-face {
+  font-family: Avenir Roman;
+  src: url(assets/fonts/AvenirRoman.otf) format("opentype");
+  font-weight: 400;
+}
+
+@font-face {
+  font-family: ProximaNova;
+  src: url(assets/fonts/ProximaNovaRegular.otf) format("opentype");
+  font-weight: 400;
+}
+
+@font-face {
+  font-family: ProximaNova Bold;
+  src: url(assets/fonts/ProximaNovaBold.otf) format("opentype");
+  font-weight: 400;
+}
+
+@font-face {
+  font-family: ProximaNova Semibold;
+  src: url(assets/fonts/ProximaNovaSemibold.otf) format("opentype");
+  font-weight: 400;
+}
+
+@font-face {
+  font-family: ProximaNova Light;
+  src: url(assets/fonts/ProximaNovaLight.otf) format("opentype");
+  font-weight: 400;
+}
+
+body {
+  overflow-x: hidden;
+}
+
+.navbar-custom {
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+  background-color: rgba(0, 0, 0, 0.7);
+}
+
+.navbar-custom .navbar-brand {
+  text-transform: uppercase;
+  font-size: 1rem;
+  letter-spacing: 0.1rem;
+  font-weight: 700;
+}
+
+.navbar-custom .navbar-nav .nav-item .nav-link {
+  text-transform: uppercase;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.1rem;
+}
+
+.router-link {
+  cursor: pointer;
+  color: white;
+}
+
+.router-link-exact-active {
+  text-decoration: underline;
+}
+
+.navbar-custom {
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+  background-color: rgba(0, 0, 0, .7);
+}
+
+footer {
+  background-color: black !important;
+  width: 100%;
+}
 </style>
