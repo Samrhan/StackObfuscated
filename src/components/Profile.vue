@@ -11,11 +11,8 @@
                 ></div>
                 <div class="profile-header-content col">
                   <div class="profile-header-img rounded-circle">
-                    <!-- Petit tour de magie pour qu'on ne puisse pas tracer l'origine de la requête si
-                    qqn met une url qui redirige vers son propre serveur,
-                    et qui en plus se chargera de vérifier le fichier pour nous :) -->
                     <img class="rounded-circle"
-                         :src="'https://images1-focus-opensocial.googleusercontent.com/gadgets/proxy?container=focus&refresh=2592000&url='+(user.profile_pic ? user.profile_pic : 'https://cdn.vox-cdn.com/thumbor/ICjwWQhDmr48CIKabxxQilwTVfg=/0x0:786x393/920x613/filters:focal(331x135:455x259):format(webp)/cdn.vox-cdn.com/uploads/chorus_image/image/65101167/obi-wan.0.0.jpg')"
+                         :src="(user.profile_pic ? user.profile_pic : 'https://cdn.vox-cdn.com/thumbor/ICjwWQhDmr48CIKabxxQilwTVfg=/0x0:786x393/920x613/filters:focal(331x135:455x259):format(webp)/cdn.vox-cdn.com/uploads/chorus_image/image/65101167/obi-wan.0.0.jpg')"
                          alt="" crossorigin="Anonymous" ref="bg_image">
                   </div>
                   <div class="profile-header-info">
@@ -72,10 +69,9 @@
                         <div class="timeline-body">
                           <div class="timeline-header">
                           <span class="userimage">
-                            <img class="rounded-circle" v-if="user.profile_pic" :src="user.profile_pic" alt="">
                             <img class="rounded-circle"
-                                 src="https://cdn.vox-cdn.com/thumbor/ICjwWQhDmr48CIKabxxQilwTVfg=/0x0:786x393/920x613/filters:focal(331x135:455x259):format(webp)/cdn.vox-cdn.com/uploads/chorus_image/image/65101167/obi-wan.0.0.jpg"
-                                 alt="Photo par défaut" v-else>
+                                 :src="user.profile_pic ? user.profile_pic : 'https://cdn.vox-cdn.com/thumbor/ICjwWQhDmr48CIKabxxQilwTVfg=/0x0:786x393/920x613/filters:focal(331x135:455x259):format(webp)/cdn.vox-cdn.com/uploads/chorus_image/image/65101167/obi-wan.0.0.jpg'"
+                                 alt="">
                           </span>
                             <span class="username"><a>{{ $route.params.username }}</a>
                             </span>&nbsp;
@@ -105,32 +101,56 @@
                           </div>
                           <div class="timeline-likes">
                             <div class="stats-right">
-                              <span class="stats-text">21 Réponses</span>
+                              <span class="stats-text" data-toggle="collapse" :data-target="'#user-comment-'+post.id"
+                                    aria-expanded="true" aria-controls="collapseResponse">21 Réponses</span>
                             </div>
                             <div class="stats">
                             <span class="fa-stack fa-fw stats-icon">
                               <i class="fa fa-circle fa-stack-2x text-primary"></i>
                               <i class="fa fa-thumbs-up fa-stack-1x fa-inverse"></i>
                             </span>
-                              <span class="stats-total">{{ post.votes }}</span>
+                              <span class="stats-total">{{ post.likes }}</span>
                             </div>
                           </div>
                           <div class="timeline-footer" v-if="$store.state.user">
-                            <a class="m-r-15 text-inverse-lighter"><i
-                                class="fa fa-thumbs-up fa-fw fa-lg m-r-3"></i> Like</a>
+                            <a class="m-r-15 text-inverse-lighter" v-on:click="like(post.id)"
+                               v-bind:class="{liked:post.liked}">
+                              <i class="fa fa-thumbs-up fa-fw fa-lg m-r-3"
+                                 v-bind:class="{'fa-inverse': post.liked}"></i>
+                              {{ !post.liked ? 'Like' : 'Liked' }}
+                            </a>
                           </div>
-                          <div class="timeline-comment-box" v-if="$store.state.user">
-                            <div class="user"><img :src="$store.state.user.profile_pic"></div>
-                            <div class="input">
-                              <form action="">
-                                <div class="input-group">
-                                  <input type="text" class="form-control rounded-corner" placeholder="Useless...">
-                                  <span class="input-group-btn p-l-10">
-                                          <button class="btn btn-primary f-s-12 rounded-corner"
-                                                  type="button">Répondre</button>
-                                          </span>
+                          <div>
+                            <div :id="'user-comment-'+post.id" class="collapse">
+                              <div v-for="(comment, i) in post.comments" :key="i" class="timeline-comment-box">
+                                <div class="user">
+                                  <img
+                                      :src="'/api/picture/'+comment.user_id">
                                 </div>
-                              </form>
+                                <div class="comment-content">
+                                  {{ comment.content }}
+                                </div>
+                              </div>
+                            </div>
+                            <div class="timeline-comment-box" v-if="$store.state.user">
+                              <div class="user"><img
+                                  :src="$store.state.user.profile_pic ? $store.state.user.profile_pic : 'https://cdn.vox-cdn.com/thumbor/ICjwWQhDmr48CIKabxxQilwTVfg=/0x0:786x393/920x613/filters:focal(331x135:455x259):format(webp)/cdn.vox-cdn.com/uploads/chorus_image/image/65101167/obi-wan.0.0.jpg'">
+                              </div>
+                              <div class="input">
+                                <form v-on:submit.prevent="send_answer(post.id)">
+                                  <div class="input-group">
+                                    <input v-bind:style="{border:'none'}" type="text"
+                                           class="form-control rounded-corner" placeholder="Useless..."
+                                           v-model="answer[post.id]" data-toggle="collapse"
+                                           :data-target="'#user-comment-'+post.id"
+                                           aria-expanded="true" aria-controls="collapseResponse">
+                                    <span class="input-group-btn p-l-10">
+                                          <button class="btn btn-primary f-s-12 rounded-corner"
+                                                  type="button" v-on:click="send_answer(post.id)">Répondre</button>
+                                          </span>
+                                  </div>
+                                </form>
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -161,10 +181,9 @@
             <div class="timeline-body">
               <div class="timeline-header">
                           <span class="userimage">
-                            <img class="rounded-circle" v-if="user.profile_pic" :src="user.profile_pic" alt="">
-                    <img class="rounded-circle"
-                         src="https://cdn.vox-cdn.com/thumbor/ICjwWQhDmr48CIKabxxQilwTVfg=/0x0:786x393/920x613/filters:focal(331x135:455x259):format(webp)/cdn.vox-cdn.com/uploads/chorus_image/image/65101167/obi-wan.0.0.jpg"
-                         alt="" v-else></span>
+                            <img class="rounded-circle"
+                                 :src="user.profile_pic ? user.profile_pic : 'https://cdn.vox-cdn.com/thumbor/ICjwWQhDmr48CIKabxxQilwTVfg=/0x0:786x393/920x613/filters:focal(331x135:455x259):format(webp)/cdn.vox-cdn.com/uploads/chorus_image/image/65101167/obi-wan.0.0.jpg'"
+                                 alt=""></span>
                 <span class="username"><a>{{ user.username }}</a> <small></small></span>
               </div>
               <div class="timeline-content">
@@ -243,7 +262,8 @@ export default {
         code: '',
         tags: []
       },
-      posts: []
+      posts: [],
+      answer: {}
     }
   },
   async mounted() {
@@ -258,15 +278,15 @@ export default {
     } else {
       await this.$store.dispatch('get_user', this.$route.params.username)
       let user_id = this.$store.state.username_to_id[this.$route.params.username]
-      this.user = this.$store.state.tmp_user[user_id]
-      if (this.user === undefined) {
-        return this.$router.replace({name: 'home'})
-      }
+      if (user_id)
+        this.user = this.$store.state.tmp_user[user_id]
+    }
+    if (this.user === undefined) {
+      return this.$router.replace({name: 'home'})
     }
     this.profile.bio = this.user.bio
     this.profile.bg_pic = this.user.bg_pic
     this.profile.profile_pic = this.user.profile_pic
-
     await this.$store.dispatch('fetch_posts', this.user.id)
     this.posts = this.$store.state.post_list
 
@@ -309,6 +329,17 @@ export default {
     async deletePost(id) {
       await this.$store.dispatch('delete_post', id)
     },
+    async like(id) {
+      await this.$store.dispatch('like_post', id)
+    },
+    async send_answer(id) {
+      if (this.answer[id]) {
+        let data = {}
+        data.content = this.answer[id]
+        data.id = id
+        await this.$store.dispatch('comment_post', data)
+      }
+    },
     highlighter(code) {
       return highlight(code, languages.js) // Permet la coloration syntaxique de code
     }
@@ -318,7 +349,7 @@ export default {
 
 <style scoped>
 #profile {
-  background: linear-gradient(0deg, #ff6a00 0%, #ee0979 100%) no-repeat scroll center center;
+  background: linear-gradient(0deg, #ee0979 0%, #ff6a00 100%) no-repeat scroll center center;
   min-height: 100vh;
 }
 
@@ -540,7 +571,7 @@ export default {
 
 @media (min-width: 900px) {
 
-  #date-mobile{
+  #date-mobile {
     display: none;
   }
 
@@ -743,23 +774,28 @@ export default {
   background: #f2f3f4;
   margin-left: -25px;
   margin-right: -25px;
-  padding: 20px 25px
+  padding: 20px 25px;
+
 }
 
 .timeline-comment-box .user {
   float: left;
   overflow: hidden;
-  border-radius: 30px
+  border-radius: 30px;
+  margin-top: 10px;
+  margin-bottom: 10px;
 }
 
 .timeline-comment-box .user img {
   width: 34px;
   height: 34px;
   object-fit: cover;
+
 }
 
 .timeline-comment-box .user + .input {
-  margin-left: 44px
+  padding-top: 10px;
+  margin-left: 44px;
 }
 
 .lead {
@@ -822,5 +858,19 @@ export default {
   border: 1px solid lightgray;
   border-radius: 20px;
   padding: 15px;
+}
+
+.liked {
+  background: blue;
+  color: white !important;
+  border-radius: 20px;
+  padding: 10px;
+}
+
+.comment-content {
+  margin-left: 50px;
+  padding: 10px 20px;
+  background-color: white;
+  border-radius: 20px;
 }
 </style>

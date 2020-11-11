@@ -125,15 +125,22 @@ router.post("/login", async (req, res) => {
 
 router.post('/editprofile', async (req, res) => {
     if (req.session.user.data) {
-        const bio = req.body.bio.substr(0, 400) // On crop si l'utilisateur n'a pas respecté le form
-        const profile_pic = req.body.profile_pic
-        const bg_pic = req.body.bg_pic
+        let bio = req.body.bio.substr(0, 400) // On crop si l'utilisateur n'a pas respecté le form
+        let profile_pic = req.body.profile_pic
+        let bg_pic = req.body.bg_pic
         // vérification de la validité des données d'entré
-        if (typeof bio !== 'string' ||
-            typeof profile_pic !== 'string' ||
+        if (typeof bio !== 'string' &&
+            typeof profile_pic !== 'string' &&
             typeof bg_pic !== 'string') {
             return res.status(400).json({message: 'bad request', code: 3})
         }
+        if (!bio)
+            bio = ''
+        if (!profile_pic)
+            profile_pic = ''
+        if (!bg_pic)
+            bg_pic = ''
+
         await client.query('UPDATE users SET (bio, profile_pic, bg_pic) = ($1, $2, $3) WHERE id = $4', [bio, profile_pic, bg_pic, req.session.user.data.id])
         req.session.user.data.bio = bio
         req.session.user.data.profile_pic = profile_pic
@@ -151,6 +158,9 @@ router.get('/user/:user_id', async (req, res) => {
     if (!isNaN(parseInt(user_id)))
         search_method = 'id'
     const query = await client.query(`SELECT * FROM users WHERE ${search_method} = $1`, [user_id])
+    if (!query.rows[0]) {
+        return res.status(404).json({message: 'Utilisateur introuvable'})
+    }
     delete query.rows[0].password
     res.json({user: query.rows[0]})
 })
@@ -185,6 +195,13 @@ router.get('/posts/:userid', async (req, res) => {
             tags.push(i.tag_name)
         }
         post.tags = tags
+        if (req.session.user.data) {
+            const like_query = await client.query('SELECT * FROM liked_post WHERE user_id = $1 AND post_id = $2', [req.session.user.data.id, post.id])
+            post.liked = like_query.rows.length > 0;
+        }
+        const answer_query = await client.query('SELECT * FROM answers WHERE post_id = $1 ORDER BY created_at DESC LIMIT 10', [post.id])
+
+        post.comments = answer_query.rows
     }
     res.json({list: posts})
 })
@@ -207,6 +224,10 @@ router.get('/post/:post_id', async (req, res) => {
         tags.push(query.rows[0].tag_name)
     }
     post.tags = tags;
+    if (req.session.user.data) {
+        const like_query = await client.query('SELECT * FROM liked_post WHERE user_id = $1 AND post_id = $2', [req.session.user.data.id, post.id])
+        post.liked = like_query.rows.length > 0;
+    }
     res.json({post: post})
 })
 
@@ -260,7 +281,7 @@ router.post('/post', async (req, res) => {
                 content: content,
                 tags: tags,
                 created_at: created_at,
-                votes: 0,
+                likes: 0,
                 code: code,
                 id: post_id
             }
@@ -336,10 +357,66 @@ router.get('/tags/posts/:start/:tag_name', async (req, res) => {
             tags.push(query.rows[0].tag_name)
         }
         posts[i].tags = tags;
+        if (req.session.user.data) {
+            const like_query = await client.query('SELECT * FROM liked_post WHERE user_id = $1 AND post_id = $2', [req.session.user.data.id, posts[i].id])
+            posts[i].liked = like_query.rows.length > 0;
+        }
     }
     res.json({posts: posts, number: number})
-
 })
+
+router.put('/like/:post_id', async (req, res) => {
+    if (!req.session.user.data)
+        return res.status(403).json({message: 'forbidden'})
+    const post_id = parseInt(req.params.post_id)
+    if (isNaN(post_id))
+        return res.status(400).json({message: 'bad request'})
+    const query = await client.query('SELECT * FROM liked_post WHERE post_id = $1 AND user_id = $2', [post_id, req.session.user.data.id])
+    if (query.rows.length > 0) {
+        await client.query('UPDATE posts SET likes = likes-1 WHERE id = $1 ', [post_id])
+        await client.query('DELETE FROM liked_post WHERE post_id = $1 AND user_id = $2', [post_id, req.session.user.data.id])
+        res.json({action: 'dislike'})
+    } else {
+        await client.query('UPDATE posts SET likes = likes+1 WHERE id = $1 ', [post_id])
+        await client.query('INSERT INTO liked_post(post_id, user_id) VALUES ($1, $2)', [post_id, req.session.user.data.id])
+        res.json({action: 'like'})
+    }
+})
+
+router.post("/comment/:post_id", async (req, res) => {
+    if (!req.session.user.data)
+        return res.status(403).json({message: 'forbidden'})
+    let content = req.body.content;
+    let post_id = parseInt(req.params.post_id);
+
+    if (typeof content !== 'string' || content === '' || isNaN(post_id)) {
+        res.status(400).json({message: 'bad_request'})
+    }
+
+    let query = await client.query('SELECT likes FROM posts WHERE id = $1', [post_id])
+    if (query.rows.length === 0)
+        res.status(404).json({message: "Le post n'existe pas"})
+
+    query = await client.query('INSERT INTO answers(post_id, user_id, content, created_at) VALUES ($1, $2, $3, $4) RETURNING *', [post_id, req.session.user.data.id, content, new Date()])
+    let data = query.rows[0]
+    res.json({answer: data})
+
+});
+
+router.get("/picture/:user_id", async (req, res) => {
+    let user_id = parseInt(req.params.user_id)
+    if (isNaN(user_id))
+        return res.status(400).json({message: 'bad request'})
+
+    const query = await client.query('SELECT profile_pic FROM users WHERE id = $1', [user_id])
+    if (query.rows[0].profile_pic !== '')
+        res.redirect(query.rows[0].profile_pic)
+    else {
+        console.log('tes')
+        res.redirect('https://i.pinimg.com/originals/ed/cc/1c/edcc1c36724d096cce3c9ad0a846ad77.gif')
+    }
+})
+
 
 module.exports = router;
 

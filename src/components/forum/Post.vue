@@ -11,17 +11,16 @@
                   <a>&nbsp;</a>
                 </div>
                 <div class="timeline-body">
-                  <div class="timeline-header" v-on:click="$router.push({name:'profile', params:{username:user.username}})">
+                  <div class="timeline-header"
+                       v-on:click="$router.push({name:'profile', params:{username:user.username}})">
                           <span class="userimage">
-                            <img class="rounded-circle" v-if="user.profile_pic" :src="user.profile_pic" alt="">
-                            <img class="rounded-circle"
-                                 src="https://cdn.vox-cdn.com/thumbor/ICjwWQhDmr48CIKabxxQilwTVfg=/0x0:786x393/920x613/filters:focal(331x135:455x259):format(webp)/cdn.vox-cdn.com/uploads/chorus_image/image/65101167/obi-wan.0.0.jpg"
-                                 alt="Photo par défaut" v-else>
+                             <img class="rounded-circle"
+                                  :src="user.profile_pic ? user.profile_pic : 'https://cdn.vox-cdn.com/thumbor/ICjwWQhDmr48CIKabxxQilwTVfg=/0x0:786x393/920x613/filters:focal(331x135:455x259):format(webp)/cdn.vox-cdn.com/uploads/chorus_image/image/65101167/obi-wan.0.0.jpg'"
+                                  alt="">
+
                           </span>
                     <span class="username"><a>{{ user.username }}</a> <small></small>
                             </span>
-                    <i v-if="owner" class="fa fa-trash" v-on:click="deletePost(post.id)" style="cursor:pointer;"
-                       title="Supprimer le post"></i>
                   </div>
                   <div class="timeline-title">
                     <p>
@@ -36,7 +35,8 @@
                                   v-if="post.code && post.code !== ''" v-model="post.code"></prism-editor>
                   </div>
                   <div class='tag-input form-group post-tags'>
-                    <div v-for='tag in post.tags' :key='tag' class='tag-input__tag' v-on:click="$router.push({name:'tagpage', params:{tag_name: tag}})">
+                    <div v-for='tag in post.tags' :key='tag' class='tag-input__tag'
+                         v-on:click="$router.push({name:'tagpage', params:{tag_name: tag}})">
                       {{ tag }}
                     </div>
                   </div>
@@ -49,15 +49,21 @@
                               <i class="fa fa-circle fa-stack-2x text-primary"></i>
                               <i class="fa fa-thumbs-up fa-stack-1x fa-inverse"></i>
                             </span>
-                      <span class="stats-total">{{ post.votes }}</span>
+                      <span class="stats-total">{{ post.likes }}</span>
                     </div>
                   </div>
                   <div class="timeline-footer" v-if="$store.state.user">
-                    <a class="m-r-15 text-inverse-lighter"><i
-                        class="fa fa-thumbs-up fa-fw fa-lg m-r-3"></i> Like</a>
+                    <a class="m-r-15 text-inverse-lighter" v-on:click="like(post.id)"
+                       v-bind:class="{liked:post.liked}">
+                      <i class="fa fa-thumbs-up fa-fw fa-lg m-r-3"
+                         v-bind:class="{'fa-inverse': post.liked}"></i>
+                      {{ !post.liked ? 'Like' : 'Liked' }}
+                    </a>
                   </div>
                   <div class="timeline-comment-box" v-if="$store.state.user">
-                    <div class="user"><img :src="$store.state.user.profile_pic"></div>
+                    <div class="user"><img
+                        :src="$store.state.user.profile_pic ? $store.state.user.profile_pic : 'https://cdn.vox-cdn.com/thumbor/ICjwWQhDmr48CIKabxxQilwTVfg=/0x0:786x393/920x613/filters:focal(331x135:455x259):format(webp)/cdn.vox-cdn.com/uploads/chorus_image/image/65101167/obi-wan.0.0.jpg'">
+                    </div>
                     <div class="input">
                       <form action="">
                         <div class="input-group">
@@ -102,6 +108,8 @@ export default {
       //Si le post n'est pas dans le cache on le télécharge
       await this.$store.dispatch('fetch_post', this.id)
       this.post = this.$store.state.post_list.find(post => post.id === this.id)
+    } else {
+      this.$store.commit('SET_POST_LIST', [this.post])
     }
 
     if (!this.$store.state.tmp_user || this.$store.state.tmp_user && !this.$store.state.tmp_user[this.post.user_id]) {
@@ -117,6 +125,10 @@ export default {
   methods: {
     highlighter(code) {
       return highlight(code, languages.js) // Permet la coloration syntaxique de code
+    },
+    async like(id) {
+      await this.$store.dispatch('like_post', id)
+      this.post = this.$store.state.post_list.find(post => post.id === this.id)
     }
   }
 }
@@ -153,7 +165,7 @@ export default {
   margin-top: 100px;
 }
 
-@media (max-width: 700px){
+@media (max-width: 700px) {
   .timeline .timeline-body {
     margin-left: 0;
     margin-right: 0;
@@ -306,6 +318,7 @@ export default {
   border-top: 1px solid lightgray;
   border-radius: 0
 }
+
 .tag-input {
   width: 100%;
   font-size: 0.9em;
@@ -322,6 +335,13 @@ export default {
   line-height: 30px;
   padding: 0 10px;
   border-radius: 20px;
+}
+
+.liked {
+  background: blue;
+  color: white !important;
+  border-radius: 20px;
+  padding: 10px;
 }
 
 </style>

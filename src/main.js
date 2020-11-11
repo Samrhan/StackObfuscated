@@ -27,7 +27,8 @@ const routes = [
     {path: '/profile/:username', component: Profile, name: 'profile'},
     {path: '/forum', component: Forum, name: 'forum'},
     {path: '/forum/tag/:tag_name', component: TagPage, name: 'tagpage'},
-    {path: '/forum/post/:post_id', component: Post, name: 'post'}
+    {path: '/forum/post/:post_id', component: Post, name: 'post'},
+    {path: '**', redirect: '/home'}
 
 ]
 
@@ -88,6 +89,7 @@ const actions = {
         axios.post('/api/logout')
             .then(() => {
                 commit('SET_USER', undefined)
+                router.push({name: 'home'})
             })
     },
     edit: async ({commit}, user) => {
@@ -101,7 +103,7 @@ const actions = {
             .then(response => {
                 let user = response.data.user
                 commit('SET_TMP_USER', user)
-            })
+            }).catch(() => commit('SET_TMP_USER', undefined))
     },
     fetch_posts: async ({commit}, user) => {
         await axios.get('/api/posts/' + user)
@@ -137,7 +139,24 @@ const actions = {
         await axios.get('/api/tags/posts/' + payload.start + '/' + payload.name)
             .then(response => {
                 commit('SET_TAG_POST_LIST', response.data)
-            }).catch(()=>{})
+            }).catch(() => {
+            })
+    },
+    like_post: async ({commit}, post_id) => {
+        await axios.put('/api/like/' + post_id)
+            .then(response => {
+                // On vérifie que du côté du back si c'est un like ou un dislike, pour éviter les conflits
+                if (response.data.action === 'like')
+                    commit('LIKE_POST', post_id)
+                else if (response.data.action === 'dislike')
+                    commit('DISLIKE_POST', post_id)
+            })
+    },
+    comment_post: async({commit}, data) =>{
+        await axios.post('/api/comment/'+data.id, {content : data.content})
+            .then(response => {
+                commit('COMMENT_POST', response.data.answer)
+            })
     }
 
 
@@ -153,16 +172,19 @@ const mutations = {
     },
     SET_TMP_USER(state, user) {
         // Crée une liste d'utilisateur en cache
-        if (!state.tmp_user)
-            state.tmp_user = {}
-        state.tmp_user[user.id] = user
-        state.username_to_id[user.username] = user.id
+        if (user !== undefined) {
+            if (!state.tmp_user)
+                state.tmp_user = {}
+            state.tmp_user[user.id] = user
+            state.username_to_id[user.username] = user.id
+        }
     },
     ADD_POST(state, post) {
         state.post_list.unshift(post)
     },
     SET_POST_LIST(state, list) {
         state.post_list = list
+        console.log(state.post_list)
     },
     DELETE_POST(state, id) {
         for (let i = 0; i < state.post_list.length; i++) {
@@ -178,6 +200,29 @@ const mutations = {
     SET_TAG_POST_LIST(state, data) {
         state.tags_posts = data.posts
         state.tags_posts_number = data.number
+    },
+    LIKE_POST(state, post_id) {
+        let post = state.post_list.find(post => post.id === post_id)
+        if (post) {
+            post.liked = true
+            post.likes += 1
+        }
+    },
+    DISLIKE_POST(state, post_id){
+        let post = state.post_list.find(post => post.id === post_id)
+        if (post) {
+            post.liked = false
+            post.likes -= 1
+        }
+    },
+    COMMENT_POST(state, data){
+        let post = state.post_list.find(post => post.id === data.post_id)
+        console.log(post)
+        if (post) {
+            if(!post.comments)
+                post.comments = []
+            post.comments.unshift(data)
+        }
     }
 
 }
