@@ -16,6 +16,7 @@
     "pg": "^8.4.1",
     "prismjs": "^1.22.0",
     "vue": "^2.6.11",
+    "vue-cookies": "^1.7.4",
     "vue-moment": "^4.1.0",
     "vue-prism-editor": "^1.2.2",
     "vue-router": "^3.4.7",

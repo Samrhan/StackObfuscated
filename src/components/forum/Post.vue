@@ -14,13 +14,15 @@
                   <div class="timeline-header"
                        v-on:click="$router.push({name:'profile', params:{username:user.username}})">
                           <span class="userimage">
-                             <img class="rounded-circle"
-                                  :src="user.profile_pic ? user.profile_pic : 'https://cdn.vox-cdn.com/thumbor/ICjwWQhDmr48CIKabxxQilwTVfg=/0x0:786x393/920x613/filters:focal(331x135:455x259):format(webp)/cdn.vox-cdn.com/uploads/chorus_image/image/65101167/obi-wan.0.0.jpg'"
+                             <img class="rounded-circle" v-if="post.user_id"
+                                  :src="user.profile_pic ? user.profile_pic : 'https://cdn.discordapp.com/attachments/775084740230250536/776352108000968744/713414390468313169.png'"
                                   alt="">
 
                           </span>
                     <span class="username"><a>{{ user.username }}</a> <small></small>
                             </span>
+                    <i v-if="owner" class="fa fa-trash" v-on:click="deletePost(post.id)" style="cursor:pointer;"
+                       title="Supprimer le post"></i><br>
                   </div>
                   <div class="timeline-title">
                     <p>
@@ -42,7 +44,10 @@
                   </div>
                   <div class="timeline-likes">
                     <div class="stats-right">
-                      <span class="stats-text">21 Réponses</span>
+                      <span class="stats-text" data-toggle="collapse" :data-target="'#user-comment-'+post.id"
+                            aria-expanded="true" aria-controls="collapseResponse">{{
+                          post.responses
+                        }} Réponse{{ post.responses > 1 ? 's' : '' }}</span>
                     </div>
                     <div class="stats">
                             <span class="fa-stack fa-fw stats-icon">
@@ -60,17 +65,46 @@
                       {{ !post.liked ? 'Like' : 'Liked' }}
                     </a>
                   </div>
-                  <div class="timeline-comment-box" v-if="$store.state.user">
+                  <div :id="'user-comment-'+post.id" class="collapse">
+                    <div v-for="(comment, i) in post.comments" :key="i"
+                         class="timeline-comment-box user-comment" v-bind:class="{'last-comment':!$store.state.user}">
+                      <div class="user">
+                        <img v-on:click="$router.push({name:'profile', params:{username:comment.username}})"
+                             :src="comment.profile_pic ? comment.profile_pic : 'https://cdn.discordapp.com/attachments/775084740230250536/776352108000968744/713414390468313169.png'">
+                      </div>
+                      <div class="comment-content">
+                        {{ comment.content }}
+                      </div>
+                      <div class="footer-comment">
+                        <small
+                            class="text-muted footer-comment">{{
+                            comment.created_at | moment('DD/MM/YYYY hh:mm')
+                          }}</small>
+                        &nbsp;
+                        <small class="text-muted footer-comment delete-comment" v-on:click="deleteComment(comment.id)"
+                               v-if="$store.state.user && comment.user_id === $store.state.user.id">supprimer</small>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="timeline-comment-box last-comment" v-if="$store.state.user">
                     <div class="user"><img
-                        :src="$store.state.user.profile_pic ? $store.state.user.profile_pic : 'https://cdn.vox-cdn.com/thumbor/ICjwWQhDmr48CIKabxxQilwTVfg=/0x0:786x393/920x613/filters:focal(331x135:455x259):format(webp)/cdn.vox-cdn.com/uploads/chorus_image/image/65101167/obi-wan.0.0.jpg'">
+                        :src="$store.state.user.profile_pic ? $store.state.user.profile_pic : 'https://cdn.discordapp.com/attachments/775084740230250536/776352108000968744/713414390468313169.png'">
                     </div>
                     <div class="input">
-                      <form action="">
+                      <form v-on:submit.prevent="send_answer(post.id)">
                         <div class="input-group">
-                          <input type="text" class="form-control rounded-corner" placeholder="Useless...">
+                          <input v-bind:style="{border:'none'}" type="text"
+                                 class="form-control rounded-corner" placeholder="Useless..."
+                                 v-model="answer[post.id]" data-toggle="collapse"
+                                 :data-target="'#user-comment-'+post.id"
+                                 aria-expanded="true" aria-controls="collapseResponse"
+                                 v-bind:class="{'is-invalid': $store.state.status === 10 && countDown > 0}">
+                          <div class="invalid-feedback">
+                            Veuillez attendre encore {{ countDown }} seconde{{ countDown > 1 ? 's' : '' }}
+                          </div>
                           <span class="input-group-btn p-l-10">
                                           <button class="btn btn-primary f-s-12 rounded-corner"
-                                                  type="button">Répondre</button>
+                                                  type="button" v-on:click="send_answer(post.id)">Répondre</button>
                                           </span>
                         </div>
                       </form>
@@ -91,15 +125,23 @@ import {highlight, languages} from "prismjs/components/prism-core";
 import 'vue-prism-editor/dist/prismeditor.min.css'; // import the styles somewhere
 import 'prismjs/components/prism-clike';
 import 'prismjs/components/prism-javascript';
-import 'prismjs/themes/prism-tomorrow.css'; // import syntax highlighting styles
+import 'prismjs/themes/prism-tomorrow.css';
+import {PrismEditor} from "vue-prism-editor"; // import syntax highlighting styles
 
 export default {
   name: "Post",
+  components: {
+    PrismEditor
+  },
   data() {
     return {
       post: {},
       user: {},
-      owner: false
+      owner: false,
+      answer: {},
+      last_comment: 0,
+      countDown: 0
+
     }
   },
   async mounted() {
@@ -116,10 +158,15 @@ export default {
       await this.$store.dispatch('get_user', this.post.user_id)
     }
     this.user = this.$store.state.tmp_user[this.post.user_id]
+    this.owner = this.$store.state.user && this.user.id === this.$store.state.user.id
   },
   computed: {
     id: function () {
       return parseInt(this.$route.params.post_id)
+    },
+    cooldown() {
+      console.log((new Date().getTime() - this.last_comment) / 1000)
+      return Math.floor(30 - (new Date().getTime() - this.last_comment) / 1000)
     }
   },
   methods: {
@@ -129,8 +176,39 @@ export default {
     async like(id) {
       await this.$store.dispatch('like_post', id)
       this.post = this.$store.state.post_list.find(post => post.id === this.id)
-    }
-  }
+    },
+    async send_answer(id) {
+      if (this.answer[id] && this.answer[id] !== '') {
+        let data = {}
+        data.content = this.answer[id]
+        data.id = id
+        this.answer[id] = ''
+        await this.$store.dispatch('comment_post', data)
+        if (this.countDown <= 0) {
+          this.countDown = this.cooldown
+          this.last_comment = new Date().getTime()
+          this.countDownTimer()
+        }
+      }
+    },
+    countDownTimer() {
+      if (this.countDown > 0) {
+        setTimeout(() => {
+          this.countDown -= 1
+          this.countDownTimer()
+        }, 1000)
+      }
+    },
+    async deleteComment(id) {
+      await this.$store.dispatch('delete_comment', id)
+    },
+    async deletePost(id) {
+      let index = this.$store.state.post_list.indexOf(this.$store.state.post_list.find(post => post.id === id))
+      this.$store.dispatch('delete_post', {id: id, index: index})
+      this.$router.go(-1)
+    },
+  },
+
 }
 </script>
 
@@ -161,7 +239,7 @@ export default {
   background: #fff;
   position: relative;
   padding: 20px 25px;
-  border-radius: 6px;
+  border-radius: 20px;
   margin-top: 100px;
 }
 
@@ -180,7 +258,6 @@ export default {
 
 .timeline .timeline-body > div + div:last-child {
   margin-bottom: -20px;
-  padding-bottom: 20px;
   border-radius: 0 0 6px 6px
 }
 
@@ -244,7 +321,8 @@ export default {
 .timeline-footer {
   background: #fff;
   border-top: 1px solid #e2e7ec;
-  padding-top: 15px
+  padding-top: 15px;
+  padding-bottom: 15px;
 }
 
 .timeline-footer a:not(.btn) {
@@ -293,8 +371,10 @@ export default {
   background: #f2f3f4;
   margin-left: -25px;
   margin-right: -25px;
-  padding: 20px 25px
+  padding: 20px 25px;
+  margin-top: 0 !important;
 }
+
 
 .timeline-comment-box .user {
   float: left;
@@ -343,5 +423,35 @@ export default {
   border-radius: 20px;
   padding: 10px;
 }
+
+.comment-content {
+  margin-left: 50px;
+  padding: 10px 20px;
+  background-color: white;
+  border-radius: 20px;
+}
+
+.timeline-comment-box.user-comment {
+  padding-top: 10px;
+  padding-bottom: 10px;
+
+}
+
+.footer-comment {
+  margin-left: 30px;
+}
+
+.delete-comment {
+  cursor: pointer
+}
+
+.delete-comment:hover {
+  text-decoration: underline;
+}
+
+.last-comment:last-child {
+  border-radius: 0 0 20px 20px !important;
+}
+
 
 </style>

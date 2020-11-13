@@ -10,10 +10,11 @@
                      v-bind:style="{backgroundImage:`url(${user.bg_pic && user.bg_pic.length !== 0 ? user.bg_pic: 'https://www.bootdey.com/img/Content/bg1.jpg'})`}"
                 ></div>
                 <div class="profile-header-content col">
-                  <div class="profile-header-img rounded-circle">
+                  <div class="profile-header-img rounded-circle" v-bind:style="{backgroundColor: 'transparent'}">
                     <img class="rounded-circle"
-                         :src="(user.profile_pic ? user.profile_pic : 'https://cdn.vox-cdn.com/thumbor/ICjwWQhDmr48CIKabxxQilwTVfg=/0x0:786x393/920x613/filters:focal(331x135:455x259):format(webp)/cdn.vox-cdn.com/uploads/chorus_image/image/65101167/obi-wan.0.0.jpg')"
-                         alt="" crossorigin="Anonymous" ref="bg_image">
+                         :src="user.profile_pic ? user.profile_pic : 'https://cdn.discordapp.com/attachments/775084740230250536/776352108000968744/713414390468313169.png'"
+                         alt="profile_pic"
+                         ref="bg_image">
                   </div>
                   <div class="profile-header-info">
                     <h4 class="m-t-10 m-b-5 bio">{{ $route.params.username }}</h4>
@@ -34,6 +35,7 @@
                     </div>
                   </div>
                 </div>
+
                 <div class="col" id="editprofile" v-if="editing">
                   <form v-on:submit.prevent="submit_edit">
                     <div class="form-group">
@@ -70,8 +72,8 @@
                           <div class="timeline-header">
                           <span class="userimage">
                             <img class="rounded-circle"
-                                 :src="user.profile_pic ? user.profile_pic : 'https://cdn.vox-cdn.com/thumbor/ICjwWQhDmr48CIKabxxQilwTVfg=/0x0:786x393/920x613/filters:focal(331x135:455x259):format(webp)/cdn.vox-cdn.com/uploads/chorus_image/image/65101167/obi-wan.0.0.jpg'"
-                                 alt="">
+                                 :src="user.profile_pic ? user.profile_pic : 'https://cdn.discordapp.com/attachments/775084740230250536/776352108000968744/713414390468313169.png'"
+                                 alt="profile_pic">
                           </span>
                             <span class="username"><a>{{ $route.params.username }}</a>
                             </span>&nbsp;
@@ -99,42 +101,59 @@
                               {{ tag }}
                             </div>
                           </div>
-                          <div class="timeline-likes">
-                            <div class="stats-right">
-                              <span class="stats-text" data-toggle="collapse" :data-target="'#user-comment-'+post.id"
-                                    aria-expanded="true" aria-controls="collapseResponse">21 Réponses</span>
-                            </div>
-                            <div class="stats">
+                          <div data-toggle="collapse" :data-target="'#user-comment-'+post.id"
+                               aria-expanded="true" aria-controls="collapseResponse">
+                            <div class="timeline-likes">
+                              <div class="stats-right">
+                              <span class="stats-text">{{
+                                  post.responses
+                                }} Réponse{{ post.responses > 1 ? 's' : '' }}</span>
+                              </div>
+                              <div class="stats">
                             <span class="fa-stack fa-fw stats-icon">
                               <i class="fa fa-circle fa-stack-2x text-primary"></i>
                               <i class="fa fa-thumbs-up fa-stack-1x fa-inverse"></i>
                             </span>
-                              <span class="stats-total">{{ post.likes }}</span>
+                                <span class="stats-total">{{ post.likes }}</span>
+                              </div>
                             </div>
-                          </div>
-                          <div class="timeline-footer" v-if="$store.state.user">
-                            <a class="m-r-15 text-inverse-lighter" v-on:click="like(post.id)"
-                               v-bind:class="{liked:post.liked}">
-                              <i class="fa fa-thumbs-up fa-fw fa-lg m-r-3"
-                                 v-bind:class="{'fa-inverse': post.liked}"></i>
-                              {{ !post.liked ? 'Like' : 'Liked' }}
-                            </a>
+                            <div class="timeline-footer" v-if="$store.state.user">
+                              <a class="m-r-15 text-inverse-lighter" v-on:click="like(post.id)"
+                                 v-bind:class="{liked:post.liked}">
+                                <i class="fa fa-thumbs-up fa-fw fa-lg m-r-3"
+                                   v-bind:class="{'fa-inverse': post.liked}"></i>
+                                {{ !post.liked ? 'Like' : 'Liked' }}
+                              </a>
+                            </div>
                           </div>
                           <div>
                             <div :id="'user-comment-'+post.id" class="collapse">
-                              <div v-for="(comment, i) in post.comments" :key="i" class="timeline-comment-box">
+                              <div v-for="(comment, i) in post.comments" :key="i"
+                                   class="timeline-comment-box user-comment"
+                                   v-bind:class="{'last-comment':!$store.state.user}">
                                 <div class="user">
-                                  <img
-                                      :src="'/api/picture/'+comment.user_id">
+                                  <img v-on:click="$router.push({name:'profile', params:{username:comment.username}})"
+                                       :title="comment.username"
+                                       :src="comment.profile_pic ? comment.profile_pic : 'https://cdn.discordapp.com/attachments/775084740230250536/776352108000968744/713414390468313169.png'">
                                 </div>
                                 <div class="comment-content">
                                   {{ comment.content }}
                                 </div>
+                                <div class="footer-comment">
+                                  <small
+                                      class="text-muted footer-comment">{{
+                                      comment.created_at | moment('DD/MM/YYYY hh:mm')
+                                    }}</small>
+                                  &nbsp;
+                                  <small class="text-muted footer-comment delete-comment"
+                                         v-on:click="deleteComment(comment.id)"
+                                         v-if="$store.state.user && comment.user_id === $store.state.user.id">supprimer</small>
+                                </div>
                               </div>
                             </div>
-                            <div class="timeline-comment-box" v-if="$store.state.user">
+                            <div class="timeline-comment-box last-comment" v-if="$store.state.user">
                               <div class="user"><img
-                                  :src="$store.state.user.profile_pic ? $store.state.user.profile_pic : 'https://cdn.vox-cdn.com/thumbor/ICjwWQhDmr48CIKabxxQilwTVfg=/0x0:786x393/920x613/filters:focal(331x135:455x259):format(webp)/cdn.vox-cdn.com/uploads/chorus_image/image/65101167/obi-wan.0.0.jpg'">
+                                  :src="$store.state.user.profile_pic ? $store.state.user.profile_pic : 'https://cdn.discordapp.com/attachments/775084740230250536/776352108000968744/713414390468313169.png'">
                               </div>
                               <div class="input">
                                 <form v-on:submit.prevent="send_answer(post.id)">
@@ -143,7 +162,11 @@
                                            class="form-control rounded-corner" placeholder="Useless..."
                                            v-model="answer[post.id]" data-toggle="collapse"
                                            :data-target="'#user-comment-'+post.id"
-                                           aria-expanded="true" aria-controls="collapseResponse">
+                                           aria-expanded="true" aria-controls="collapseResponse"
+                                           v-bind:class="{'is-invalid': $store.state.status === 10 && countDown > 0}">
+                                    <div class="invalid-feedback">
+                                      Veuillez attendre encore {{ countDown }} secondes
+                                    </div>
                                     <span class="input-group-btn p-l-10">
                                           <button class="btn btn-primary f-s-12 rounded-corner"
                                                   type="button" v-on:click="send_answer(post.id)">Répondre</button>
@@ -182,8 +205,9 @@
               <div class="timeline-header">
                           <span class="userimage">
                             <img class="rounded-circle"
-                                 :src="user.profile_pic ? user.profile_pic : 'https://cdn.vox-cdn.com/thumbor/ICjwWQhDmr48CIKabxxQilwTVfg=/0x0:786x393/920x613/filters:focal(331x135:455x259):format(webp)/cdn.vox-cdn.com/uploads/chorus_image/image/65101167/obi-wan.0.0.jpg'"
-                                 alt=""></span>
+                                 :src="user.profile_pic ? user.profile_pic : 'https://cdn.discordapp.com/attachments/775084740230250536/776352108000968744/713414390468313169.png'"
+                                 alt="profile_pic">
+                                 </span>
                 <span class="username"><a>{{ user.username }}</a> <small></small></span>
               </div>
               <div class="timeline-content">
@@ -263,7 +287,9 @@ export default {
         tags: []
       },
       posts: [],
-      answer: {}
+      answer: {},
+      last_comment: 0,
+      countDown: 0
     }
   },
   async mounted() {
@@ -327,21 +353,51 @@ export default {
       this.new_post.tags = []
     },
     async deletePost(id) {
-      await this.$store.dispatch('delete_post', id)
+      let index = this.posts.indexOf(this.posts.find(post => post.id === id))
+      await this.$store.dispatch('delete_post', {id: id, index: index})
     },
     async like(id) {
       await this.$store.dispatch('like_post', id)
     },
     async send_answer(id) {
-      if (this.answer[id]) {
+      if (this.answer[id] && this.answer[id] !== '') {
         let data = {}
         data.content = this.answer[id]
         data.id = id
+        this.answer[id] = ''
         await this.$store.dispatch('comment_post', data)
+        if(this.countDown <= 0) {
+          this.countDown = this.cooldown
+          this.last_comment = new Date().getTime()
+          this.countDownTimer()
+        }
+      }
+    },
+    async deleteComment(id) {
+      await this.$store.dispatch('delete_comment', id)
+
+    },
+    countDownTimer() {
+      if (this.countDown > 0) {
+        setTimeout(() => {
+          this.countDown -= 1
+          this.countDownTimer()
+        }, 1000)
       }
     },
     highlighter(code) {
       return highlight(code, languages.js) // Permet la coloration syntaxique de code
+    }
+  },
+  computed: {
+    cooldown() {
+      console.log( (new Date().getTime() - this.last_comment) / 1000)
+      return Math.floor(30 - (new Date().getTime() - this.last_comment) / 1000)
+    }
+  },
+  watch: {
+    $route() {
+      this.$router.go()
     }
   }
 }
@@ -560,7 +616,7 @@ export default {
   background: #fff;
   position: relative;
   padding: 20px 25px;
-  border-radius: 6px
+  border-radius: 20px
 }
 
 @media (max-width: 900px) {
@@ -661,8 +717,7 @@ export default {
 
 .timeline .timeline-body > div + div:last-child {
   margin-bottom: -20px;
-  padding-bottom: 20px;
-  border-radius: 0 0 6px 6px
+  border-radius: 0 0 6px 6px;
 }
 
 .timeline-header {
@@ -775,7 +830,14 @@ export default {
   margin-left: -25px;
   margin-right: -25px;
   padding: 20px 25px;
+}
 
+.timeline-comment-box:first-child {
+  border-radius: 7px 7px 0 0;
+}
+
+.last-comment:last-child {
+  border-radius: 0 0 20px 20px;
 }
 
 .timeline-comment-box .user {
@@ -873,4 +935,23 @@ export default {
   background-color: white;
   border-radius: 20px;
 }
+
+.timeline-comment-box.user-comment {
+  padding-top: 10px;
+  padding-bottom: 10px;
+
+}
+
+.footer-comment {
+  margin-left: 30px;
+}
+
+.delete-comment {
+  cursor: pointer
+}
+
+.delete-comment:hover {
+  text-decoration: underline;
+}
+
 </style>

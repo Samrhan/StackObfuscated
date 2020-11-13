@@ -2,14 +2,18 @@ const express = require('express')
 const router = express.Router()
 const session = require('express-session')
 const logger = require('morgan')
+const cookieParser = require("cookie-parser")
 
 const bcrypt = require('bcrypt')
 const {Client} = require('pg')
+const axios = require("axios")
 
 router.use(logger('dev'))
 router.use(express.json())
 router.use(express.urlencoded({extended: false}))
-router.use(session({secret: 'cI8zS4nC8gZ1hN7j', saveUninitialized: false, resave: false}))
+router.use(session({secret: 'cI8zS4nC8gZ1hN7j', saveUninitialized: false, resave: false, name: 'sid'}))
+router.use(cookieParser());
+
 
 const client = new Client({
     user: 'postgres',
@@ -23,6 +27,7 @@ class User {
     constructor() {
         this.createdAt = new Date()
         this.updatedAt = new Date()
+        this.lastComment = 0
         this.data = undefined// undefined si l'utilisateur n'est pas connecté
     }
 }
@@ -60,7 +65,7 @@ router.post('/register', async (req, res) => {
     }
 
     //on revérifie les données du formulaire, au cas ou qqn utilise postman ou burp
-    let validForm = !passwd.match(/^(?=.*[A-Z])(?=.*[0-9])(?=.*[a-z].*[a-z].*[a-z]).{8,}$/) || !mail.match(/.*@.*\..{2,}/) || (username.length < 5) || (!!username.match(/[^A-Za-z0-9]+/));
+    let validForm = !passwd.match(/^(?=.*[A-Z])(?=.*[0-9])(?=.*[a-z].*[a-z].*[a-z]).{8,}$/) || !mail.match(/.*@.*\..{2,}/) || (username.length < 5) || (!!username.match(/[^A-Za-z0-9 _]+/));
     if (validForm) {
         res.status(401).json({message: "use the form :)", code: 2})
         return
@@ -128,12 +133,39 @@ router.post('/editprofile', async (req, res) => {
         let bio = req.body.bio.substr(0, 400) // On crop si l'utilisateur n'a pas respecté le form
         let profile_pic = req.body.profile_pic
         let bg_pic = req.body.bg_pic
-        // vérification de la validité des données d'entré
+        // vérification de la validité des données d'entrée
         if (typeof bio !== 'string' &&
             typeof profile_pic !== 'string' &&
             typeof bg_pic !== 'string') {
             return res.status(400).json({message: 'bad request', code: 3})
         }
+        let query_profile
+
+        // On va vérifier que les liens sont bien des images et qu'elles ne sont pas trop lourdes
+        if (profile_pic !== '') {
+            try {
+                query_profile = await axios.head(profile_pic)
+                let content_length = parseInt(query_profile.headers['content-length']) / 1024 / 1024
+                let content_type = query_profile.headers['content-type']
+                // type image et max 10 mo
+                if (!content_length || !content_type || content_length > 10 || !content_type.startsWith('image'))
+                    profile_pic = ''
+            } catch {
+                profile_pic = ''
+            }
+        }
+        if (bg_pic !== '') {
+            try {
+                query_profile = await axios.head(bg_pic)
+                let content_length = parseInt(query_profile.headers['content-length']) / 1024 / 1024
+                let content_type = query_profile.headers['content-type']
+                if (!content_length || !content_type || content_length > 10 || !content_type.startsWith('image'))
+                    bg_pic = ''
+            } catch {
+                bg_pic = ''
+            }
+        }
+
         if (!bio)
             bio = ''
         if (!profile_pic)
@@ -199,9 +231,15 @@ router.get('/posts/:userid', async (req, res) => {
             const like_query = await client.query('SELECT * FROM liked_post WHERE user_id = $1 AND post_id = $2', [req.session.user.data.id, post.id])
             post.liked = like_query.rows.length > 0;
         }
-        const answer_query = await client.query('SELECT * FROM answers WHERE post_id = $1 ORDER BY created_at DESC LIMIT 10', [post.id])
-
-        post.comments = answer_query.rows
+        let answer_query = await client.query('SELECT COUNT(*) FROM answers WHERE post_id = $1', [post.id])
+        post.responses = answer_query.rows[0].count
+        answer_query = await client.query('SELECT * FROM answers WHERE post_id = $1 ORDER BY created_at DESC', [post.id])
+        post.comments = answer_query.rows.reverse()
+        for (let j of post.comments) {
+            let user_query = await client.query("SELECT username, profile_pic FROM users WHERE id = $1", [j.user_id])
+            j.username = user_query.rows[0].username
+            j.profile_pic = user_query.rows[0].profile_pic
+        }
     }
     res.json({list: posts})
 })
@@ -214,7 +252,7 @@ router.get('/post/:post_id', async (req, res) => {
     let query = await client.query('SELECT * FROM posts WHERE id = $1', [post_id])
     let post = query.rows[0]
     if (!post) {
-        res.status(404).json({message: 'Non trouvé'})
+        return res.status(404).json({message: 'Non trouvé'})
     }
     query = await client.query('SELECT tag_id FROM post_tag WHERE post_id = $1', [post_id])
     let tags_id = query.rows
@@ -228,65 +266,77 @@ router.get('/post/:post_id', async (req, res) => {
         const like_query = await client.query('SELECT * FROM liked_post WHERE user_id = $1 AND post_id = $2', [req.session.user.data.id, post.id])
         post.liked = like_query.rows.length > 0;
     }
+    query = await client.query('SELECT COUNT(*) FROM answers WHERE post_id = $1', [post.id])
+    post.responses = query.rows[0].count
+    query = await client.query('SELECT * FROM answers WHERE post_id = $1', [post.id])
+    post.comments = query.rows
+    for (let j of post.comments) {
+        let user_query = await client.query("SELECT username, profile_pic FROM users WHERE id = $1", [j.user_id])
+        j.username = user_query.rows[0].username
+        j.profile_pic = user_query.rows[0].profile_pic
+    }
     res.json({post: post})
 })
 
 router.post('/post', async (req, res) => {
-    if (req.session.user.data) {
-        const title = req.body.title.substr(0, 400) // On crop si l'utilisateur n'a pas respecté le form
-        const content = req.body.content
-        const code = req.body.code
-        let tags = req.body.tags
-        for (let i = 0; i < 3; i++) {
-            if (!tags[i]) {
-                tags.push('')
-            }
+    if (!req.session.user.data)
+        return res.status(403)
+    const title = req.body.title.substr(0, 400) // On crop si l'utilisateur n'a pas respecté le form
+    const content = req.body.content
+    const code = req.body.code
+    let tags = req.body.tags
+    for (let i = 0; i < 3; i++) {
+        if (!tags[i]) {
+            tags.push('')
         }
-        if (typeof title !== 'string' ||
-            typeof content !== 'string' ||
-            typeof tags !== 'object' ||
-            typeof code !== 'string'
-        ) {
-            return res.status(400).json({message: 'bad request', code: 3})
+    }
+    if (typeof title !== 'string' ||
+        typeof content !== 'string' ||
+        typeof tags !== 'object' ||
+        typeof code !== 'string'
+    ) {
+        return res.status(400).json({message: 'bad request', code: 3})
+    }
+    // On insère dans la table poste les données du post
+    const created_at = new Date()
+    const query = await client.query('INSERT INTO POSTS(title, content, created_at, user_id, code) VALUES ($1, $2, $3, $4, $5) RETURNING id', [title, content, created_at, req.session.user.data.id, code])
+    const post_id = query.rows[0].id
+    // On récupère les tags liées, et on incrémente le nombre d'utilisation
+    const verif_tag_query = await client.query('UPDATE tags SET used = used +1 WHERE tag_name = $1 OR tag_name =  $2 OR tag_name =  $3 RETURNING *', tags)
+    const verif_tag = verif_tag_query.rows
+    for (let i of tags) {
+        let tag = verif_tag.find(tag => tag.tag_name === i)
+        // S'ils existent pas on les crée et on les link on post
+        if (!tag && i !== '') {
+            const tag_id_query = await client.query('INSERT INTO tags(tag_name) VALUES ($1) RETURNING id', [i])
+            const tag_id = tag_id_query.rows[0].id
+            await client.query('INSERT INTO post_tag(post_id, tag_id) VALUES($1, $2)', [post_id, tag_id])
+        } else if (i !== '') {
+            // Sinon on les links juste au tags existant
+            await client.query('INSERT INTO post_tag(post_id, tag_id) VALUES($1, $2)', [post_id, tag.id])
         }
-        // On insère dans la table poste les données du post
-        const created_at = new Date()
-        const query = await client.query('INSERT INTO POSTS(title, content, created_at, user_id, code) VALUES ($1, $2, $3, $4, $5) RETURNING id', [title, content, created_at, req.session.user.data.id, code])
-        const post_id = query.rows[0].id
-        // On récupère les tags liées, et on incrémente le nombre d'utilisation
-        const verif_tag_query = await client.query('UPDATE tags SET used = used +1 WHERE tag_name = $1 OR tag_name =  $2 OR tag_name =  $3 RETURNING *', tags)
-        const verif_tag = verif_tag_query.rows
-        for (let i of tags) {
-            let tag = verif_tag.find(tag => tag.tag_name === i)
-            // S'ils existent pas on les crée et on les link on post
-            if (!tag && i !== '') {
-                const tag_id_query = await client.query('INSERT INTO tags(tag_name) VALUES ($1) RETURNING id', [i])
-                const tag_id = tag_id_query.rows[0].id
-                await client.query('INSERT INTO post_tag(post_id, tag_id) VALUES($1, $2)', [post_id, tag_id])
-            } else if (i !== '') {
-                // Sinon on les links juste au tags existant
-                await client.query('INSERT INTO post_tag(post_id, tag_id) VALUES($1, $2)', [post_id, tag.id])
-            }
+    }
+    for (let i = 0; i < 3; i++) {
+        if (tags[i] === '') {
+            tags = tags.splice(i, 1)
         }
-        for (let i = 0; i < 3; i++) {
-            if (tags[i] === '') {
-                tags = tags.splice(i, 1)
-            }
+    }
+    if (tags.length === 1 && tags[0] === '')
+        tags = []
+    return res.json({
+        post: {
+            title: title,
+            content: content,
+            tags: tags,
+            created_at: created_at,
+            likes: 0,
+            code: code,
+            id: post_id,
+            responses: 0,
+            comments: []
         }
-        if (tags.length === 1 && tags[0] === '')
-            tags = []
-        return res.json({
-            post: {
-                title: title,
-                content: content,
-                tags: tags,
-                created_at: created_at,
-                likes: 0,
-                code: code,
-                id: post_id
-            }
-        })
-    } else return res.status(403)
+    })
+
 })
 
 router.delete('/post/:postid', async (req, res) => {
@@ -299,6 +349,8 @@ router.delete('/post/:postid', async (req, res) => {
         if (query.rows[0].user_id === req.session.user.data.id) { // On vérifie si l'utilisateur est bien l'auteur du post
             await client.query('DELETE FROM posts WHERE id = $1', [id])
             await client.query('DELETE FROM post_tag WHERE post_id = $1', [id])
+            await client.query('DELETE FROM liked_post WHERE post_id = $1', [id]) // On supprime aussi les likes
+            await client.query('DELETE FROM answers WHERE post_id = $1', [id]) // On supprime aussi les commentaires
         } else return res.status(403)
         return res.json({id: id})
     } else return res.status(403)
@@ -361,9 +413,90 @@ router.get('/tags/posts/:start/:tag_name', async (req, res) => {
             const like_query = await client.query('SELECT * FROM liked_post WHERE user_id = $1 AND post_id = $2', [req.session.user.data.id, posts[i].id])
             posts[i].liked = like_query.rows.length > 0;
         }
+        let answer_query = await client.query('SELECT COUNT(*) FROM answers WHERE post_id = $1', [posts[i].id])
+        posts[i].responses = answer_query.rows[0].count
+        answer_query = await client.query('SELECT * FROM answers WHERE post_id = $1 ORDER BY created_at DESC', [posts[i].id])
+        posts[i].comments = answer_query.rows.reverse()
+        for (let j of posts[i].comments) {
+            let user_query = await client.query("SELECT username, profile_pic FROM users WHERE id = $1", [j.user_id])
+            j.username = user_query.rows[0].username
+            j.profile_pic = user_query.rows[0].profile_pic
+        }
     }
     res.json({posts: posts, number: number})
 })
+
+router.get('/posts/popular/:start', async (req, res) => {
+    const start = parseInt(req.params.start)
+    if (isNaN(start)) {
+        return res.status(400).json({message: 'bad request'})
+    }
+
+    let query = await client.query("SELECT * FROM posts ORDER BY likes DESC LIMIT 10 OFFSET $1", [start])
+    let posts = query.rows;
+    query = await client.query("SELECT COUNT(*) FROM posts")
+    let number = query.rows[0].count
+    for (let i of posts) {
+        query = await client.query('SELECT tag_id FROM post_tag WHERE post_id = $1', [i.id])
+        let tags_id = query.rows
+        let tags = []
+        for (let j of tags_id) {
+            query = await client.query('SELECT tag_name FROM tags WHERE id = $1', [j.tag_id])
+            tags.push(query.rows[0].tag_name)
+        }
+        i.tags = tags;
+        if (req.session.user.data) {
+            const like_query = await client.query('SELECT * FROM liked_post WHERE user_id = $1 AND post_id = $2', [req.session.user.data.id, i.id])
+            i.liked = like_query.rows.length > 0;
+        }
+        let answer_query = await client.query('SELECT COUNT(*) FROM answers WHERE post_id = $1', [i.id])
+        i.responses = answer_query.rows[0].count
+        answer_query = await client.query('SELECT * FROM answers WHERE post_id = $1 ORDER BY created_at DESC', [i.id])
+        i.comments = answer_query.rows.reverse()
+        for (let j of i.comments) {
+            let user_query = await client.query("SELECT username, profile_pic FROM users WHERE id = $1", [j.user_id])
+            j.username = user_query.rows[0].username
+            j.profile_pic = user_query.rows[0].profile_pic
+        }
+    }
+    res.json({posts: posts, number: number})
+})
+
+router.get('/posts/last/:start', async (req, res) => {
+    const start = parseInt(req.params.start)
+    if (isNaN(start)) {
+        return res.status(400).json({message: 'bad request'})
+    }
+    let query = await client.query("SELECT * FROM posts ORDER BY created_at DESC LIMIT 10 OFFSET $1", [start])
+    let posts = query.rows;
+    query = await client.query("SELECT COUNT(*) FROM posts")
+    let number = query.rows[0].count
+    for (let i of posts) {
+        query = await client.query('SELECT tag_id FROM post_tag WHERE post_id = $1', [i.id])
+        let tags_id = query.rows
+        let tags = []
+        for (let j of tags_id) {
+            query = await client.query('SELECT tag_name FROM tags WHERE id = $1', [j.tag_id])
+            tags.push(query.rows[0].tag_name)
+        }
+        i.tags = tags;
+        if (req.session.user.data) {
+            const like_query = await client.query('SELECT * FROM liked_post WHERE user_id = $1 AND post_id = $2', [req.session.user.data.id, i.id])
+            i.liked = like_query.rows.length > 0;
+        }
+        let answer_query = await client.query('SELECT COUNT(*) FROM answers WHERE post_id = $1', [i.id])
+        i.responses = answer_query.rows[0].count
+        answer_query = await client.query('SELECT * FROM answers WHERE post_id = $1 ORDER BY created_at DESC', [i.id])
+        i.comments = answer_query.rows.reverse()
+        for (let j of i.comments) {
+            let user_query = await client.query("SELECT username, profile_pic FROM users WHERE id = $1", [j.user_id])
+            j.username = user_query.rows[0].username
+            j.profile_pic = user_query.rows[0].profile_pic
+        }
+    }
+    res.json({posts: posts, number: number})
+})
+
 
 router.put('/like/:post_id', async (req, res) => {
     if (!req.session.user.data)
@@ -386,6 +519,13 @@ router.put('/like/:post_id', async (req, res) => {
 router.post("/comment/:post_id", async (req, res) => {
     if (!req.session.user.data)
         return res.status(403).json({message: 'forbidden'})
+    if (req.session.user.lastComment !== 0) {
+        if (new Date().getTime() - req.session.user.lastComment < 30 * 1000) {
+            return res.status(403).json({message: 'too fast', code: 10})
+        } else req.session.user.lastComment = new Date().getTime()
+    } else {
+        req.session.user.lastComment = new Date().getTime()
+    }
     let content = req.body.content;
     let post_id = parseInt(req.params.post_id);
 
@@ -399,22 +539,38 @@ router.post("/comment/:post_id", async (req, res) => {
 
     query = await client.query('INSERT INTO answers(post_id, user_id, content, created_at) VALUES ($1, $2, $3, $4) RETURNING *', [post_id, req.session.user.data.id, content, new Date()])
     let data = query.rows[0]
+    let user_query = await client.query("SELECT username, profile_pic FROM users WHERE id = $1", [data.user_id])
+    data.username = user_query.rows[0].username
+    data.profile_pic = user_query.rows[0].profile_pic
+
     res.json({answer: data})
 
 });
 
-router.get("/picture/:user_id", async (req, res) => {
-    let user_id = parseInt(req.params.user_id)
-    if (isNaN(user_id))
-        return res.status(400).json({message: 'bad request'})
+router.delete("/comment/:comment_id", async (req, res) => {
+    if (!req.session.user.data)
+        return res.status(403).json({message: 'forbidden'})
 
-    const query = await client.query('SELECT profile_pic FROM users WHERE id = $1', [user_id])
-    if (query.rows[0].profile_pic !== '')
-        res.redirect(query.rows[0].profile_pic)
-    else {
-        console.log('tes')
-        res.redirect('https://i.pinimg.com/originals/ed/cc/1c/edcc1c36724d096cce3c9ad0a846ad77.gif')
+    const comment_id = parseInt(req.params.comment_id)
+    if (isNaN(comment_id)) {
+        res.status(400).json({message: 'bad_request'})
     }
+
+    let query = await client.query('SELECT * FROM answers WHERE id = $1', [comment_id])
+    if (query.rows.length === 0)
+        res.status(404).json({message: "Le post n'existe pas"})
+
+    if (query.rows[0].user_id !== req.session.user.data.id)
+        return res.status(403).json({message: 'forbidden'})
+
+    await client.query('DELETE FROM answers WHERE id = $1', [comment_id])
+    res.json({data: {id: comment_id, post_id: query.rows[0].post_id}})
+
+});
+
+router.post('/acceptcookies', (req, res) => {
+    res.cookie('accept-cookies', true, {httpOnly: false})
+    res.end()
 })
 
 
