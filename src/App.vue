@@ -2,7 +2,8 @@
   <div id="app">
     <nav class="navbar navbar-expand-lg navbar-dark navbar-custom fixed-top">
       <a class="navbar-brand">
-        <router-link class="router-link" to="/">Stack\u004fbfuscated</router-link>
+        <router-link class="router-link float-left" to="/" v-bind:style="{fontSize:'15px'}">Stack\u004fbfuscated
+        </router-link>
       </a>
       <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbar"
               aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -65,14 +66,15 @@
     <div class="fixed-bottom container-cookie align-baseline" tabindex="-1" role="dialog"
          aria-hidden="false" v-if="!cookie">
       <div class="notice d-flex justify-content-between align-items-center">
-        <div class="cookie-text">Nous utilisons seulement les cookies nécessaires à votre navigation sur ce site, et ne collectons aucune données de navigation.
+        <div class="cookie-text float-left">Nous utilisons seulement les cookies nécessaires à votre navigation sur ce
+          site, et ne collectons aucune données de navigation.
         </div>
-        <div class="buttons d-flex flex-column flex-lg-row cookie-buttons">
+        <div class="buttons d-flex flex-column flex-lg-row cookie-buttons float-right">
           <a class="btn btn-success btn-sm" v-on:click="acceptCookies">J'accepte</a>
         </div>
       </div>
     </div>
-    </div>
+  </div>
 </template>
 
 <script>
@@ -80,16 +82,16 @@ module.exports = {
   data() {
     return {
       input_search: '',
-      cookie: this.$cookies.get('accept-cookies')
+      cookie: this.$cookies.get('accept-cookies'),
     }
   },
   methods: {
     search: function () {
       this.$router.replace({name: 'tagpage', params: {tag_name: this.input_search}})
     },
-    async acceptCookies(){
+    async acceptCookies() {
       await this.$store.dispatch('accept_cookies')
-      this.cookie =  this.$cookies.get('accept-cookies')
+      this.cookie = this.$cookies.get('accept-cookies')
 
     }
   },
@@ -207,15 +209,31 @@ footer {
 
 .container-cookie {
   background: rgba(0, 0, 0, 0.8);
-  height: 50px;
+  min-height: 50px;
   color: white;
   padding-top: 8px;
   padding-left: 8px;
   padding-right: 8px;
 }
 
-.cookie-buttons a{
+.cookie-buttons a {
   margin-left: 8px;
+}
+
+body::-webkit-scrollbar-track /* Pour la barre de scroll */
+{
+  background-color: black;
+}
+
+body::-webkit-scrollbar {
+  width: 13px;
+  background-color: black;
+}
+
+body::-webkit-scrollbar-thumb {
+  border-radius: 10px;
+  -webkit-box-shadow: inset 0 0 6px rgba(0, 0, 0, .3);
+  background-color: #F5F5F5;
 }
 
 </style>

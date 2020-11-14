@@ -5,7 +5,7 @@
         <div class="container">
           <h1 class="masthead-heading mb-0">Stack\u004fbfuscated</h1>
           <h2 class="masthead-subheading mb-0">Ugly code is Beautif\x75l</h2>
-          <a href="#" class="btn btn-primary btn-xl rounded-pill mt-5">A Propos</a>
+          <a href="#" class="btn btn-primary btn-xl rounded-pill mt-5" v-on:click="$router.push({name:'about'})">A Propos</a>
         </div>
       </div>
       <div class="bg-circle-1 bg-circle"></div>

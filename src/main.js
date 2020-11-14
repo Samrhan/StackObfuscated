@@ -11,7 +11,6 @@ import TagPage from './components/forum/tag_page'
 import Post from './components/forum/Post'
 import About from './components/Aboutus'
 
-
 import VueCookies from 'vue-cookies'
 
 import axios from 'axios'
@@ -43,7 +42,14 @@ const routes = [
 
 const router = new VueRouter({
     mode: 'history',
-    routes // short for `routes: routes`
+    routes, // short for `routes: routes`
+    scrollBehavior (to, from, savedPosition) {
+        if (savedPosition) {
+            return savedPosition
+        } else {
+            return { x: 0, y: 0 }
+        }
+    }
 })
 
 
@@ -158,10 +164,10 @@ const actions = {
                 }).catch(() => {
                 })
         else await axios.get('/api/tags/posts/' + payload.start + '/' + payload.name)
-            .then(response => {
-                commit('SET_TAG_POST_LIST', response.data)
-            }).catch(() => {
-            })
+                .then(response => {
+                    commit('SET_TAG_POST_LIST', response.data)
+                }).catch(() => {
+                })
     },
     like_post: async ({commit}, post_id) => {
         await axios.put('/api/like/' + post_id)
@@ -178,8 +184,8 @@ const actions = {
             .then(response => {
                 commit('COMMENT_POST', response.data.answer)
                 commit('SET_STATUS', 100)
-            }).catch(err=>{
-                if(err.response.data.code === 10){
+            }).catch(err => {
+                if (err.response.data.code === 10) {
                     commit('SET_STATUS', 10)
                 }
             })
@@ -190,7 +196,7 @@ const actions = {
                 commit('DELETE_COMMENT', response.data.data)
             })
     },
-    accept_cookies: async ()=>{
+    accept_cookies: async () => {
         await axios.post('/api/acceptcookies')
     }
 
@@ -271,6 +277,7 @@ const store = new Vuex.Store({
     actions,
     mutations
 })
+
 
 new Vue({
     router,
