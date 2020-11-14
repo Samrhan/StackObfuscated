@@ -1,32 +1,33 @@
 <template>
   <div>
-  <section class="home">
-    <header class="masthead text-center text-white">
-      <div class="masthead-content">
-        <div class="container">
-          <h1 class="masthead-heading mb-0">Qui sommes-nous ?</h1>
-          <h2 class="masthead-subheading mb-0">Des dieux.</h2>
-          <a href="#" class="btn btn-primary btn-xl rounded-pill mt-5">A Propos</a>
+    <section class="home">
+      <header class="masthead text-center text-white">
+        <div class="masthead-content">
+          <div class="container">
+            <h1 class="masthead-heading mb-0">Qui sommes-nous ?</h1>
+            <a ref="button" v-on:click.prevent="scroll" href="#" class="btn btn-primary btn-xl rounded-pill mt-5">Découvrez-le</a>
+          </div>
         </div>
-      </div>
-      <div class="bg-circle-1 bg-circle"></div>
-      <div class="bg-circle-2 bg-circle"></div>
-      <div class="bg-circle-3 bg-circle"></div>
-      <div class="bg-circle-4 bg-circle"></div>
-    </header>
-  </section>
+        <div class="bg-circle-1 bg-circle"></div>
+        <div class="bg-circle-2 bg-circle"></div>
+        <div class="bg-circle-3 bg-circle"></div>
+        <div class="bg-circle-4 bg-circle"></div>
+      </header>
+    </section>
     <section>
-      <div class="container">
+      <div class="container" ref="about">
         <div class="row align-items-center">
           <div class="col-lg-6">
             <div class="p-5">
-              <img class="img-fluid rounded-circle" src="https://cdn.discordapp.com/attachments/647487518467424259/776897633531985920/StudioPhotoCV-IMG_2901-70.jpg" alt="">
+              <img class="img-fluid rounded-circle"
+                   src="https://cdn.discordapp.com/attachments/647487518467424259/776897633531985920/StudioPhotoCV-IMG_2901-70.jpg"
+                   alt="">
             </div>
           </div>
           <div class="col-lg-6">
             <div class="p-5">
-              <h2 class="display-4">We salute you!</h2>
-              <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Quod aliquid, mollitia odio veniam sit iste esse assumenda amet aperiam exercitationem, ea animi blanditiis recusandae! Ratione voluptatum molestiae adipisci, beatae obcaecati.</p>
+              <h2 class="display-4">Samuel BADER</h2>
+              <p>Adepte du Lorem Ipsum</p>
             </div>
           </div>
         </div>
@@ -37,13 +38,13 @@
         <div class="row align-items-center">
           <div class="col-lg-6 order-lg-2">
             <div class="p-5">
-              <img class="img-fluid rounded-circle" src="img/03.jpg" alt="">
+              <img class="img-fluid rounded-circle" src="https://cdn.discordapp.com/attachments/647487518467424259/777165184162332672/muffin_animation.gif" alt="">
             </div>
           </div>
           <div class="col-lg-6 order-lg-1">
             <div class="p-5">
-              <h2 class="display-4">Let there be rock!</h2>
-              <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Quod aliquid, mollitia odio veniam sit iste esse assumenda amet aperiam exercitationem, ea animi blanditiis recusandae! Ratione voluptatum molestiae adipisci, beatae obcaecati.</p>
+              <h2 class="display-4">Adrien PLOT</h2>
+              <p>It's Muffin Time</p>
             </div>
           </div>
         </div>
@@ -54,7 +55,12 @@
 
 <script>
 export default {
-name: "Aboutus"
+  name: "Aboutus",
+  methods: {
+    scroll() {
+      this.$refs.about.scrollIntoView({behavior: 'smooth', block: 'start', inline: 'nearest'});
+    }
+  }
 }
 </script>
 

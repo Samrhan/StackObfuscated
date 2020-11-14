@@ -27,7 +27,7 @@
                      placeholder="Entrez un nom d'utilisateur" v-model="username.input"
                      v-bind:class="{'is-invalid': username.invalid || $store.state.status === 4}" required>
               <div class="invalid-feedback" v-if="username.invalid">
-                Votre nom d'utilisateur doit faire plus de 5 caractères et ne contenir que des lettres ou des chiffres
+                Votre nom d'utilisateur doit faire plus de 4 caractères et ne contenir que des lettres ou des chiffres
               </div>
               <div class="invalid-feedback" v-else>
                 Nom d'utilisateur déjà utilisé
@@ -87,7 +87,7 @@ export default {
       this.password.invalid = !this.password.input.match(/^(?=.*[A-Z])(?=.*[0-9])(?=.*[a-z].*[a-z].*[a-z]).{8,}$/)
       this.confirmPassword.invalid = this.confirmPassword.input !== this.password.input;
       this.email.invalid = !this.email.input.match(/.*@.*\..{2,}/);
-      this.username.invalid = (this.username.input.length < 5) || (!!this.username.input.match(/[^A-Za-z0-9 _]+/));
+      this.username.invalid = (this.username.input.length < 4) || (!!this.username.input.match(/[^A-Za-z0-9 _]+/));
       let validForm = !this.password.invalid && !this.email.invalid && !this.confirmPassword.invalid && !this.username.invalid
       if (validForm) {
         this.$store.dispatch('register', {
