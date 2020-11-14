@@ -3,7 +3,7 @@
     <header class="masthead text-center text-white">
       <div class="masthead-content">
         <div class="container" id="register">
-          <h1 class="register-title">S'inscrire</h1>
+          <h1 class="register-title">Se Connecter</h1>
           <form v-on:submit.prevent="login">
             <div class="form-group">
               <label for="inputId">Adresse email</label>
@@ -111,7 +111,7 @@ header.masthead .bg-circle-4 {
   right: 35%;
 }
 
-@media (min-width: 992px) {
+@media (min-width: 1000px) {
   header.masthead {
     padding-top: 15vh;
     padding-bottom: 10rem;
@@ -160,7 +160,7 @@ header.masthead .bg-circle-4 {
   color: black
 }
 
-@media (max-width: 700px) {
+@media (max-width: 1000px) {
   #register {
     width: 100vw;
     margin-top: 20vh;

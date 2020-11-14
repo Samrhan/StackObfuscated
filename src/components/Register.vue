@@ -87,7 +87,7 @@ export default {
       this.password.invalid = !this.password.input.match(/^(?=.*[A-Z])(?=.*[0-9])(?=.*[a-z].*[a-z].*[a-z]).{8,}$/)
       this.confirmPassword.invalid = this.confirmPassword.input !== this.password.input;
       this.email.invalid = !this.email.input.match(/.*@.*\..{2,}/);
-      this.username.invalid = (this.username.input.length < 5) || (!!this.username.input.match(/[^A-Za-z0-9]+/));
+      this.username.invalid = (this.username.input.length < 5) || (!!this.username.input.match(/[^A-Za-z0-9 _]+/));
       let validForm = !this.password.invalid && !this.email.invalid && !this.confirmPassword.invalid && !this.username.invalid
       if (validForm) {
         this.$store.dispatch('register', {
@@ -158,7 +158,7 @@ header.masthead .bg-circle-4 {
   right: 35%;
 }
 
-@media (min-width: 992px) {
+@media (min-width: 1000px) {
   header.masthead {
     padding-top: 15vh;
     padding-bottom: 10rem;
@@ -207,7 +207,7 @@ header.masthead .bg-circle-4 {
   color: black
 }
 
-@media (max-width: 700px) {
+@media (max-width: 1000px) {
   #register {
     width: 100vw;
     margin-top: 20vh;

@@ -20,7 +20,8 @@
           </tr>
           </thead>
           <tbody>
-          <tr class="forum-2" v-for="(post, i) in posts" :key="i" v-on:click="$router.push({name:'post', params:{post_id:post.id}})">
+          <tr class="forum-2" v-for="(post, i) in posts" :key="i"
+              v-on:click="$router.push({name:'post', params:{post_id:post.id}})">
             <td class="expand footable-visible footable-first-column" title="No unread posts"><span
                 class="footable-toggle"></span>
               <span class="icon-wrapper">
@@ -34,10 +35,18 @@
             </td>
             <td class="stats-col footable-visible">
                 <span class="stats-wrapper">
-                  21&nbsp;réponses&nbsp;<br>56&nbsp;like
+                  {{
+                    post.responses
+                  }}&nbsp;réponse{{ post.likes > 1 ? 's' : '' }}&nbsp;<br>{{
+                    post.likes
+                  }}&nbsp;like{{ post.likes > 1 ? 's' : '' }}
                 </span>
             </td>
-            <td class="footable-visible footable-last-column">
+            <td class="footable-visible footable-last-column text-truncate">
+              <div v-if="post.comments[post.comments.length -1]">
+                {{ post.comments[post.comments.length - 1].content }}<br>
+                <span class="date">{{ post.created_at | moment("DD/MM/YYYY HH:mm") }}</span>&nbsp;
+              </div>
             </td>
           </tr>
           <tr class="forum-5">
@@ -50,10 +59,13 @@
               <span class="desc-wrapper">
                 <nav aria-label="Page navigation example">
                   <ul class="pagination">
-                    <li class="page-item" v-bind:class="{disabled:page === 1}"><a class="page-link" v-on:click="change_page(page-1)">&laquo;</a></li>
-                    <li class="page-item" v-for="i in Math.floor(tag_number/10) + 1" :key="i" v-bind:class="{active:page=== i}"><a
+                    <li class="page-item" v-bind:class="{disabled:page === 1}"><a class="page-link"
+                                                                                  v-on:click="change_page(page-1)">&laquo;</a></li>
+                    <li class="page-item" v-for="i in Math.floor(tag_number/10) + 1" :key="i"
+                        v-bind:class="{active:page=== i}"><a
                         class="page-link" v-on:click="change_page(i)">{{ i }}</a></li>
-                    <li class="page-item" v-bind:class="{disabled:page === max_page}"><a class="page-link" v-on:click="change_page(page+1)">&raquo;</a></li>
+                    <li class="page-item" v-bind:class="{disabled:page === max_page}"><a class="page-link"
+                                                                                         v-on:click="change_page(page+1)">&raquo;</a></li>
                   </ul>
                 </nav>
               </span>
@@ -82,31 +94,37 @@ export default {
     }
   },
   async mounted() {
-    let payload = {name : this.tag, start : 0}
+    let payload = {name: this.tag, start: 0}
     await this.$store.dispatch('get_tag_post', payload)
     this.posts = this.$store.state.tags_posts
-    this.post_number = this.$store.state.tags_posts_number
+    this.tag_number = this.$store.state.tags_posts_number
     this.max_page = Math.floor(this.tag_number / 10) + 1
   },
   methods: {
     change_page: async function (i) {
       if (this.page !== i) {
         this.page = i
-        await this.$store.dispatch('popular_tags', (i-1)*10)
+        await this.$store.dispatch('get_tag_post', {
+          start: (i - 1) * 10,
+          name: this.tag
+        })
         this.posts = this.$store.state.tags_posts
       }
     }
   },
-  computed:{
-    tag: function(){
-      return this.$route.params.tag_name
+  computed: {
+    tag: function () {
+      if (this.$route.name !== 'popular' && this.$route.name !== 'last')
+        return this.$route.params.tag_name
+      else
+        return this.$route.name
     },
-    tag_title: function(){
+    tag_title: function () {
       return this.tag[0].toUpperCase() + this.tag.slice(1)
     }
   },
-  watch:{
-    $route (){
+  watch: {
+    $route() {
       this.$router.go()
     }
   }
@@ -115,11 +133,11 @@ export default {
 
 <style scoped>
 
-.history{
+.history {
   margin: 100px 100px 20px;
 }
 
-.breadcrumb{
+.breadcrumb {
   border-radius: 20px;
 }
 

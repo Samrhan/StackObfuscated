@@ -25,25 +25,27 @@
           </li>
         </ul>
         <form class="form-inline my-2 my-lg-0" v-on:submit.prevent="search">
-          <input class="form-control mr-sm-2 col-lg-100" type="search" placeholder="Search" aria-label="Search"
+          <input class="form-control mr-sm-2 col-lg-100" type="search" placeholder="Recherche un tag"
+                 aria-label="Search"
                  v-model="input_search">
         </form>
         <ul class="navbar-nav my-2 my-lg-0" v-if="!$store.state.user">
           <li class="nav-item">
             <a class="nav-link">
-              <router-link class="router-link" :to="{name:'login'}">Login</router-link>
+              <router-link class="router-link" :to="{name:'login'}">Se Connecter</router-link>
             </a>
           </li>
           <li class="nav-item">
             <a class="nav-link">
-              <router-link class="router-link" :to="{name:'register'}">Register</router-link>
+              <router-link class="router-link" :to="{name:'register'}">S'Inscrire</router-link>
             </a>
           </li>
         </ul>
         <ul class="navbar-nav my-2 my-lg-0" v-else>
           <li class="nav-item">
             <a class="nav-link">
-              <a class="router-link" :href="$router.resolve({name: 'profile', params:{username:this.$store.state.user.username}}).href">Profil</a>
+              <a class="router-link"
+                 :href="$router.resolve({name: 'profile', params:{username:this.$store.state.user.username}}).href">Profil</a>
             </a>
           </li>
           <li class="nav-item">
@@ -60,20 +62,35 @@
         <p class="m-0 text-center text-white small">Copyright © StackObfuscated.com 2020</p>
       </div>
     </footer>
-
-  </div>
+    <div class="fixed-bottom container-cookie align-baseline" tabindex="-1" role="dialog"
+         aria-hidden="false" v-if="!cookie">
+      <div class="notice d-flex justify-content-between align-items-center">
+        <div class="cookie-text">Nous utilisons seulement les cookies nécessaires à votre navigation sur ce site, et ne collectons aucune données de navigation.
+        </div>
+        <div class="buttons d-flex flex-column flex-lg-row cookie-buttons">
+          <a class="btn btn-success btn-sm" v-on:click="acceptCookies">J'accepte</a>
+        </div>
+      </div>
+    </div>
+    </div>
 </template>
 
 <script>
 module.exports = {
   data() {
     return {
-      input_search: ''
+      input_search: '',
+      cookie: this.$cookies.get('accept-cookies')
     }
   },
   methods: {
     search: function () {
       this.$router.replace({name: 'tagpage', params: {tag_name: this.input_search}})
+    },
+    async acceptCookies(){
+      await this.$store.dispatch('accept_cookies')
+      this.cookie =  this.$cookies.get('accept-cookies')
+
     }
   },
   async mounted() {
@@ -187,4 +204,18 @@ footer {
   background-color: black !important;
   width: 100%;
 }
+
+.container-cookie {
+  background: rgba(0, 0, 0, 0.8);
+  height: 50px;
+  color: white;
+  padding-top: 8px;
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+.cookie-buttons a{
+  margin-left: 8px;
+}
+
 </style>

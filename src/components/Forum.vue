@@ -17,7 +17,7 @@
           </tr>
           </thead>
           <tbody>
-          <tr id="forum-2">
+          <tr id="forum-2" v-on:click="$router.push({name:'last'})">
             <td class="expand footable-visible footable-first-column" title="No unread posts"><span
                 class="footable-toggle"></span>
               <span class="icon-wrapper">
@@ -34,7 +34,7 @@
             <td class="footable-visible footable-last-column">
             </td>
           </tr>
-          <tr class="forum-5">
+          <tr class="forum-5" v-on:click="$router.push({name:'popular'})">
             <td class="expand footable-visible footable-first-column" title="No unread posts"><span
                 class="footable-toggle"></span>
               <span class="icon-wrapper">
