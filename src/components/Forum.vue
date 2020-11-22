@@ -17,7 +17,7 @@
           </tr>
           </thead>
           <tbody>
-          <tr id="forum-2" v-on:click="$router.push({name:'last'})">
+          <tr id="forum-2" v-on:click="$router.push({name:'last'})" style="cursor: pointer;">
             <td class="expand footable-visible footable-first-column" title="No unread posts"><span
                 class="footable-toggle"></span>
               <span class="icon-wrapper">
@@ -34,7 +34,7 @@
             <td class="footable-visible footable-last-column">
             </td>
           </tr>
-          <tr class="forum-5" v-on:click="$router.push({name:'popular'})">
+          <tr class="forum-5" v-on:click="$router.push({name:'popular'})" style="cursor: pointer;">
             <td class="expand footable-visible footable-first-column" title="No unread posts"><span
                 class="footable-toggle"></span>
               <span class="icon-wrapper">
@@ -69,7 +69,7 @@
           </tr>
           </thead>
           <tbody>
-          <tr class="forum-2" v-for="(tag, i) in popular_tags" :key="i" v-on:click.prevent="goto(tag)">
+          <tr class="forum-2" v-for="(tag, i) in popular_tags" :key="i" v-on:click.prevent="goto(tag)" style="cursor: pointer;">
             <td class="expand footable-visible footable-first-column" title="No unread posts"><span
                 class="footable-toggle"></span>
               <span class="icon-wrapper">
@@ -111,11 +111,21 @@
               <span class="desc-wrapper">
                 <nav aria-label="Page navigation example">
                   <ul class="pagination">
-                    <li class="page-item" v-bind:class="{disabled:page === 1}"><a class="page-link" v-on:click="change_page(page-1)">&laquo;</a></li>
-                    <li class="page-item" v-for="i in Math.floor(tag_number/10) + 1" :key="i" v-bind:class="{active:page=== i}"><a
-                        class="page-link" v-on:click="change_page(i)">{{ i }}</a></li>
-                    <li class="page-item" v-bind:class="{disabled:page === max_page}"><a class="page-link"
-                                                                                         v-on:click="change_page(page+1)">&raquo;</a></li>
+                    <li class="page-item" v-bind:class="{disabled:page === 1}">
+                      <a class="page-link" v-on:click="change_page(page-1)" style="cursor: pointer;">
+                        &laquo;
+                      </a>
+                    </li>
+                    <li class="page-item" v-for="i in Math.floor(tag_number/10) + 1" :key="i" v-bind:class="{active:page=== i}">
+                      <a
+                        class="page-link" v-on:click="change_page(i)" style="cursor: pointer;">
+                        {{ i }}
+                      </a>
+                    </li>
+                    <li class="page-item" v-bind:class="{disabled:page === max_page}">
+                      <a class="page-link" v-on:click="change_page(page+1)" style="cursor: pointer;">
+                        &raquo;</a>
+                    </li>
                   </ul>
                 </nav>
               </span>

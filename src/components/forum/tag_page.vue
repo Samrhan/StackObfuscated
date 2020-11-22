@@ -20,7 +20,7 @@
           </tr>
           </thead>
           <tbody>
-          <tr class="forum-2" v-for="(post, i) in posts" :key="i"
+          <tr class="forum-2" v-for="(post, i) in posts" :key="i" style="cursor: pointer;"
               v-on:click="$router.push({name:'post', params:{post_id:post.id}})">
             <td class="expand footable-visible footable-first-column" title="No unread posts"><span
                 class="footable-toggle"></span>
@@ -58,14 +58,23 @@
               <i class="row-icon-font-mini"></i>
               <span class="desc-wrapper">
                 <nav aria-label="Page navigation example">
-                  <ul class="pagination">
-                    <li class="page-item" v-bind:class="{disabled:page === 1}"><a class="page-link"
-                                                                                  v-on:click="change_page(page-1)">&laquo;</a></li>
+                  <ul class="pagination" >
+                    <li class="page-item" v-bind:class="{disabled:page === 1}">
+                      <a class="page-link" style="cursor: pointer;" v-on:click="change_page(page-1)">
+                        &laquo;
+                      </a>
+                    </li>
                     <li class="page-item" v-for="i in Math.floor(tag_number/10) + 1" :key="i"
-                        v-bind:class="{active:page=== i}"><a
-                        class="page-link" v-on:click="change_page(i)">{{ i }}</a></li>
-                    <li class="page-item" v-bind:class="{disabled:page === max_page}"><a class="page-link"
-                                                                                         v-on:click="change_page(page+1)">&raquo;</a></li>
+                        v-bind:class="{active:page=== i}" >
+                      <a
+                        class="page-link" v-on:click="change_page(i)" style="cursor: pointer;">{{ i }}
+                      </a>
+                    </li>
+                    <li class="page-item" v-bind:class="{disabled:page === max_page}">
+                      <a class="page-link" v-on:click="change_page(page+1)" style="cursor: pointer;">
+                        &raquo;
+                      </a>
+                    </li>
                   </ul>
                 </nav>
               </span>

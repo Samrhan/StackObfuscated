@@ -97,7 +97,7 @@
                                           v-if="post.code && post.code !== ''" v-model="post.code"></prism-editor>
                           </div>
                           <div class='tag-input form-group post-tags'>
-                            <div v-for='tag in post.tags' :key='tag' class='tag-input__tag'>
+                            <div v-for='tag in post.tags' :key='tag' class='tag-input__tag' style="cursor:pointer;" v-on:click="$router.push({name:'tagpage', params:{tag_name: tag}})">
                               {{ tag }}
                             </div>
                           </div>
@@ -105,7 +105,7 @@
                                aria-expanded="true" aria-controls="collapseResponse">
                             <div class="timeline-likes">
                               <div class="stats-right">
-                              <span class="stats-text">{{
+                              <span class="stats-text" style="cursor: pointer;">{{
                                   post.responses
                                 }} Réponse{{ post.responses > 1 ? 's' : '' }}</span>
                               </div>
@@ -119,7 +119,7 @@
                             </div>
                             <div class="timeline-footer" v-if="$store.state.user">
                               <a class="m-r-15 text-inverse-lighter" v-on:click="like(post.id)"
-                                 v-bind:class="{liked:post.liked}">
+                                 v-bind:class="{liked:post.liked}" style="cursor: pointer;">
                                 <i class="fa fa-thumbs-up fa-fw fa-lg m-r-3"
                                    v-bind:class="{'fa-inverse': post.liked}"></i>
                                 {{ !post.liked ? 'Like' : 'Liked' }}
@@ -132,7 +132,7 @@
                                    class="timeline-comment-box user-comment"
                                    v-bind:class="{'last-comment':!$store.state.user}">
                                 <div class="user">
-                                  <img v-on:click="$router.push({name:'profile', params:{username:comment.username}})"
+                                  <img v-on:click="$router.push({name:'profile', params:{username:comment.username}})" style="cursor: pointer;"
                                        :title="comment.username"
                                        :src="comment.profile_pic ? comment.profile_pic : 'https://cdn.discordapp.com/attachments/775084740230250536/776352108000968744/713414390468313169.png'">
                                 </div>
